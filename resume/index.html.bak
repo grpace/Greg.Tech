@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+<title>Greg Pace - Resume</title>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=0.1, maximum-scale=2" />
+<meta name="description" content="This is my HTML Resume"/>
+<link rel='stylesheet' href='assets/style.css' type='text/css'/>
+<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
+</head>
+
+<body>
+
+<!-- Start Print Wrapper -->
+<div class="wrapper">
+
+<!-- Begin Header -->
+<header>
+	<div class="column-left">
+		<h1>Greg Pace</h1>
+		<h2>Digital Shelf Manager & Product Owner</h2>
+	</div>
+	<div class="column-right">
+		<div class="column-left">
+			<ul class="icon-list">
+				<li><i class="fas fa-map-marker-alt"></i>1022 W. Byron St, Apt 3E</li>
+				<div class="city">Chicago, IL 60613</div>
+				<li><i class="fas fa-phone"></i><a style="color: inherit; text-decoration: inherit;" href="tel:+16307797361">630.779.7361</a></li>
+			</ul>
+		</div>
+		<div class="column-right">
+			<ul class="icon-list">
+				<li><i class="fas fa-at"></i><a style="color: inherit; text-decoration: inherit;" href="mailto:grpace@gmail.com">grpace@gmail.com</a></li>
+				<li><i class="fas fa-link"></i><a style="color: inherit; text-decoration: inherit;" target="_blank" href="https://greg.tech">greg.tech</a></li>
+				<li><i class="fab fa-linkedin"></i><a style="color: inherit; text-decoration: inherit;" target="_blank" href="https://www.linkedin.com/in/grpace">linkedin.com/in/grpace</a></li>
+			</ul>
+		</div>
+	</div>
+</header>
+<!-- End Header -->
+
+<!-- Begin Main Sections -->
+<main>
+
+	<!-- Begin Caption -->
+	<div class="caption">
+		<div>
+			<i class="fas fa-quote-left"></i>Experienced Manager in CPG, who is dedicated to providing the best possible user experience<br> for all consumers, with a natural ability to bring cross-functional teams together and get things done quickly.
+		</div>
+	</div>
+	<!-- End Caption -->
+
+	<!-- Begin Timeline -->
+	<div class="timeline">
+	  <!-- Begin Section Title -->
+	  <div class="entry">
+		<div class="title-headline">
+		</div>
+		<div class="body">
+		  <h2>Experience</h2>
+		</div>
+	  </div>
+	  <!-- End Section Title -->
+	  
+	  <!-- Begin Job Entry -->
+	  <div class="entry">
+		<div class="title">
+		  <h3>July 2020 - Present</h3>
+		</div>
+		<div class="body">
+		  <h3>Manager, Digital Shelf (eCommerce) – Technology (Systems & Syndication)</h3>
+		  <h4>The Kraft Heinz Company</h4>
+		  <ul>
+			  <li>Leads content syndication strategy for all retail customers in both US and Canada, managing over 4000 active SKU's.</li>
+			  <li>Owner of Salsify (PIM) Platform, consults on all content technology improvement/change projects.</li>
+			  <li>Manages an agile agency team and owns relationships with content service providers such as: Salsify, Syndigo and Nielsen BrankBand.</li>
+			  <li>Develops success metrics to ensure content accuracy and completeness across the entire digital shelf.</li>
+			  <li>Establishes governance with IT/Engineering teams to ensure all eCommerce content is compliant and optimized for various retailers.</li>
+			  <li>Key stakeholder in customer meetings & supports seamless API integrations between content service providers and retailer platforms.</li>
+			  <li>Improves processes and workflows within the Digital Shelf Team and communicates plans effectively with other teams.</li>
+			  <li>Key contributor on the team that executed the sale of the Kraft Heinz nuts Business to Hormel Foods worth over $3,350,000,000.</li>
+		  </ul>
+		</div>
+	  </div>
+	  <!-- End Job Entry -->
+
+	  <!-- Begin Job Entry -->
+	  <div class="entry">
+		<div class="title">
+		  <h3>June 2014 - July 2020</h3>
+		</div>
+		<div class="body">
+		  <h3>Technical Product/Project Manager</h3>
+		  <h4>Antenna Group</h4>
+		  <ul>
+			<li>Worked directly with retainer clients to determine the best strategy on how to most effectively utilize their hours, coordinating resources with the team, and managing the client relationship.</li>
+			<li>Provided the following consulting throughout the project: ideas for the site, sitemap creation/content architecture, conversion optimization, and technical implementation. Utilizes strong understanding of APIs and external services to accurately scope out and document integration workflows.</li>
+			<li>Architected the best functional solution for customers. Used creative thinking and problem solving to make recommendations to clients for delivering on the goals of the project. Ensured budget and company capabilities are in line with the scope of work.</li>
+			<li>Crafted the documentation of high-level technical requirements that is handed to developers.</li>
+			<li>Created post project documentation so both the client and internal support personnel can better understand the setup and make changes.</li>
+			<li>Responsible for taking websites live and ensuring that they go live without downtime to website, email or any other services relating to the customer’s domain.</li>
+		  </ul>
+		  <div class="column-left">
+			<h5 class="mt0 mb0"><em>Previous Positions at Chicago Digital (Acquired by Antenna Group December 2017):</em></h5>
+			<ul class="small">
+				<li>Product / Project Manager | June 2016 - December 2017</li>
+				<li>Assistant Product Manager | August 2015 - May 2016</li>
+				<li>Junior Web Master | August 2014 - August 2015</li>
+				<li>Website Marketing Intern | June 2014 - August 2014</li>
+			</ul>
+		  </div>
+		  <div class="column-right">
+			<h5 class="mt0 mb0"><em>Other Responsibilities within Chicago Digital:</em></h5>
+			<ul class="small">
+				<li>BC Academe Instructor: Created Instructional Video Tutorials for Adobe Business Catalyst (CMS) Platform.</li>
+				<li>BC App Store Product Manager: Responsible for Reviewing / Publishing Apps submitted by developers to the Adobe Business Catalyst (CMS) App Store. Handles all high-level support tasks.</li>
+			</ul>
+		   </div>
+		</div>
+	  </div>
+	  <!-- End Job Entry -->
+	  
+	  <!-- Begin Job Entry -->
+	  <div class="entry">
+		<div class="title">
+		  <h3>May 2013 - August 2013</h3>
+		</div>
+		<div class="body">
+		  <h3>Technician</h3>
+		  <h4>ARDS Services</h4>
+		  <ul>
+		  </ul>
+		</div>
+	  </div>
+	  <!-- End Job Entry -->
+
+	  <!-- Begin Job Entry -->
+	  <div class="entry">
+		<div class="title">
+		  <h3>June 2012 - August 2012</h3>
+		</div>
+			<div class="body">
+		  <h3>Computer Technician</h3>
+		  <h4>Wheaton School District CUSD 200</h4>
+		  <ul>
+		  </ul>
+		</div>
+	  </div>
+	  <!-- End Job Entry -->
+	  
+
+	  <!-- Begin Section Title -->
+	  <div class="entry">
+		<div class="title-headline education">
+		</div>
+		<div class="body">
+		  <h2>Education</h2>
+		</div>
+	  </div>
+	  <!-- End Section Title -->
+
+	  <!-- Begin School Entry -->
+	  <div class="entry">
+		<div class="title">
+		  <h3>2012 - 2016</h3>
+		</div>
+			<div class="body">
+		  <h3>University of Illinois at Urbana-Champaign, Bachelor of Arts in Economics, Minor in Informatics</h3>
+		  <ul>
+			<li>Executive Vice President | UI Innovate - MakerLab and 3D Printing Club</li>
+		  </ul>
+		</div>
+	  </div>
+	  <!-- End School Entry -->
+
+	  <!-- Begin Section Title -->
+	  <div class="entry">
+		<div class="title-headline skills">
+		</div>
+		<div class="body">
+		  <h2>Skills</h2>
+		</div>
+	  </div>
+	  <!-- End Section Title -->
+
+		<!-- Begin Skill Entry -->
+		<div class="entry">
+		<div class="title-skill">
+		</div>
+		<div class="body">
+			<p><strong>CPG eCommerce Platforms:</strong> Salsify Certified, Syndigo Certified, Profitero Certified, Amazon Vendor Central, Walmart Item360, SAP (MDG & GDS)</p>
+		</div>
+		</div>
+		<!-- End Skill Entry -->
+		
+		<!-- Begin Skill Entry -->
+		<div class="entry">
+		<div class="title-skill">
+		</div>
+		<div class="body">
+			<p><strong>Project Management Software:</strong> Asana, Monday.com, Jira, Basecamp, Trello, Slack, GatherContent, Google Sheets, SlickPlan</p>
+		</div>
+		</div>
+		<!-- End Skill Entry -->
+
+		<!-- Begin Skill Entry -->
+		<div class="entry">
+		<div class="title-skill">
+		</div>
+		<div class="body">
+			<p><strong>Web Technologies:</strong> HTML/CSS, APIs/Services, JavaScript/jQuery, PHP, WordPress, Shopify, CloudFlare/DNS, AWS, Google Cloud Console</p>
+
+		</div>
+		</div>
+		<!-- End Skill Entry -->
+
+	  <!-- Begin Skill Entry -->
+	  <div class="entry">
+		<div class="title-skill">
+		</div>
+		<div class="body">
+			<p><strong>IT/Support Skills:</strong> Expert problem solver, excellent documentation skills, comfortable at a command line, expertise on both Windows & Mac platforms</p>
+		</div>
+	  </div>
+	  <!-- End Skill Entry -->
+
+		<!-- Begin Skill Entry -->
+		<div class="entry">
+		<div class="title-skill">
+		</div>
+		<div class="body">
+			<p><strong>Marketing/CRM Technologies:</strong> HubSpot, Salesforce, Microsoft Dynamics, MailChimp, Constant Contact, Google Analytics Certified, AgencyAnalytics</p>
+		</div>
+		</div>
+		<!-- End Skill Entry -->
+
+	  <!-- Begin Skill Entry -->
+	  <div class="entry">
+		<div class="title-skill">
+		</div>
+		<div class="body">
+		  <p><strong>Office Suite Expert:</strong> Microsoft Excel/Google Sheets, PowerPoint/Google Slides, Microsoft Word/Google Docs</p>
+		</div>
+	  </div>
+	  <!-- End Skill Entry -->
+
+		<!-- Begin Skill Entry -->
+		<div class="entry">
+		<div class="title-skill">
+		</div>
+		<div class="body">
+			<p><strong>Design/Prototyping Software:</strong> Adobe Photoshop, Sketch, Invision, Figma, Zeplin</p>
+		</div>
+		</div>
+		<!-- End Skill Entry -->
+
+	</div>
+	<!-- End Timeline -->
+
+</main>
+<!-- End Main Sections -->
+</div>
+<!-- End Print Wrapper -->
+<script type='text/javascript' src='assets/scripts.js'></script>
+</body>
+</html>
