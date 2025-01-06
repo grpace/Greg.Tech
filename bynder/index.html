@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bynder / Salsify Image Import Generator</title>
+	<meta name="robots" content="noindex">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='50%' x='50%' dominant-baseline='middle' text-anchor='middle' font-size='90' font-family='system-ui' font-weight='bold' fill='%234CAF50'>B</text><text y='75%' x='50%' dominant-baseline='middle' text-anchor='middle' font-size='50' font-family='system-ui' font-weight='bold' fill='%232196F3'>S</text></svg>">
+    <style>
+        body {
+            font-family: proxima-nova, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f2f5;
+            background-image: 
+                radial-gradient(#e3e8ee 2px, transparent 2px),
+                radial-gradient(#e3e8ee 2px, transparent 2px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Optional: Add a subtle border radius to the container */
+        @media (min-width: 1601px) {
+            .container {
+                margin: 20px auto;
+                min-height: calc(100vh - 40px);
+                border-radius: 8px;
+            }
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        #gtinInput {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            font-family: monospace;
+            resize: vertical;
+            min-height: 100px;
+            box-sizing: border-box;
+        }
+        #fetchButton {
+            width: 100%;
+            padding: 15px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-family: proxima-nova, sans-serif;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        #fetchButton:hover {
+            background-color: #45a049;
+        }
+        .error-message {
+            color: #dc3545;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #dc3545;
+            border-radius: 4px;
+            background-color: #f8d7da;
+        }
+        
+        .loading {
+            display: inline-block;
+            margin-left: 10px;
+            color: #666;
+        }
+        
+        #statusMessage {
+            margin-top: 10px;
+        }
+        
+        .login-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .login-section input {
+            margin-right: 10px;
+            padding: 8px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .tab-container {
+            margin-bottom: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        
+        .tab-button {
+            padding: 10px 20px;
+            margin-right: 5px;
+            border: none;
+            background-color: #f2f2f2;
+            cursor: pointer;
+        }
+        
+        .tab-button.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .horizontal-scroll {
+            overflow-x: auto;
+            max-width: 100%;
+        }
+        
+        #exportButton {
+            display: none;
+        }
+        
+        .header {
+            background: linear-gradient(to right, #2196F3, #4CAF50);
+            color: white;
+            padding: 40px 20px;
+            margin: -20px -20px 20px -20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 600;
+        }
+        
+        .footer {
+            flex-shrink: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            text-align: center;
+            margin: 20px -20px -20px -20px;
+            color: #666;
+        }
+        
+        .view-controls {
+            display: none;
+        }
+        
+        .view-controls {
+            flex: 1;
+        }
+
+        .fetch-container {
+            position: relative;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 30px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .loading-container {
+            display: none;
+            width: 100%;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #e0e0e0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        input, textarea, button {
+            font-family: proxima-nova, sans-serif;
+        }
+
+        .loading-container.completed {
+            border-radius: 4px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+        }
+
+        .loading-container.completed .progress-bar {
+            margin-bottom: 8px;
+        }
+
+        .loading-container.completed .progress-fill {
+            transition: none; /* Remove transition when completed */
+        }
+
+        .progress-text.completed {
+            color: #4CAF50;
+            font-weight: 500;
+        }
+
+        .export-buttons {
+            float: right;
+        }
+        
+        .export-buttons button {
+            margin-left: 5px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        .no-results-summary {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .no-results-summary h4 {
+            margin: 0 0 10px 0;
+            color: #856404;
+        }
+
+        .no-results-list {
+            margin: 0;
+            padding-left: 20px;
+            color: #666;
+            font-family: monospace;
+        }
+
+        /* Update the main content area to take up available space */
+        #mainContent, #loginSection {
+            flex: 1 0 auto;
+        }
+    </style>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Bynder / Salsify Image Import Generator</h1>
+        </div>
+        
+        <div id="loginSection" class="login-section">
+            <h2>Authentication</h2>
+            <input type="text" id="clientId" placeholder="Client ID">
+            <input type="password" id="clientSecret" placeholder="Client Secret">
+            <button onclick="authenticate()">Login</button>
+        </div>
+        
+        <div id="mainContent" class="hidden">
+            <div class="fetch-container">
+                <textarea id="gtinInput" placeholder="Enter GTINs (comma-separated, or one per line)" rows="8"></textarea>
+                <button id="fetchButton" onclick="fetchData()">Fetch Data</button>
+                <div class="loading-container" id="loadingContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <div class="progress-text" id="progressText">Processing GTINs: 0/0</div>
+                </div>
+                <div class="no-results-summary" id="noResultsSummary"></div>
+            </div>
+            <div id="statusMessage"></div>
+            <div class="tab-container">
+                <div class="view-controls">
+                    <button class="tab-button active" onclick="switchView('consolidated')">Consolidated View</button>
+                    <button class="tab-button" onclick="switchView('detailed')">Detailed View</button>
+                </div>
+                <div class="export-buttons" id="exportButtons" style="display: none;">
+                    <button class="tab-button" onclick="exportToExcel(false)">Export All</button>
+                    <button class="tab-button" onclick="exportToExcel(true)">Export Live Assets</button>
+                </div>
+            </div>
+            <div id="resultsTable"></div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 Greg Pace</p>
+        </div>
+    </div>
+
+    <script>
+        let accessToken = null;
+        let refreshToken = null;
+        
+        // Add function to store tokens in localStorage
+        function storeTokens(access, refresh) {
+            accessToken = access;
+            refreshToken = refresh;
+            localStorage.setItem('accessToken', access);
+            localStorage.setItem('refreshToken', refresh);
+            localStorage.setItem('tokenTimestamp', Date.now().toString());
+        }
+
+        // Add function to clear tokens
+        function clearTokens() {
+            accessToken = null;
+            refreshToken = null;
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('tokenTimestamp');
+        }
+
+        // Add function to check if token needs refresh
+        function needsRefresh() {
+            const timestamp = localStorage.getItem('tokenTimestamp');
+            if (!timestamp) return true;
+            
+            // Check if token is older than 50 minutes
+            return (Date.now() - parseInt(timestamp)) > (50 * 60 * 1000);
+        }
+
+        async function refreshAccessToken() {
+            const clientId = document.getElementById('clientId').value;
+            const clientSecret = document.getElementById('clientSecret').value;
+            const statusMessage = document.getElementById('statusMessage');
+
+            try {
+                const credentials = btoa(`${clientId}:${clientSecret}`);
+                const response = await fetch('https://media.markanthony.com/v6/authentication/oauth2/token', {
+                    method: 'POST',
+                    mode: 'cors',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': `Basic ${credentials}`,
+                        'Accept': 'application/json',
+                        'Origin': window.location.origin
+                    },
+                    body: new URLSearchParams({
+                        'grant_type': 'refresh_token',
+                        'refresh_token': refreshToken
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Refresh failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                storeTokens(data.access_token, data.refresh_token);
+                return true;
+
+            } catch (error) {
+                console.error('Token refresh failed:', error);
+                clearTokens();
+                document.getElementById('loginSection').classList.remove('hidden');
+                document.getElementById('mainContent').classList.add('hidden');
+                if (error.message.includes('CORS')) {
+                    statusMessage.innerHTML = `
+                        <div class="error-message">
+                            CORS Error: Unable to access the authentication server. 
+                            Please ensure you have proper CORS configuration or contact your system administrator.
+                        </div>`;
+                } else {
+                    statusMessage.innerHTML = `<div class="error-message">Session expired. Please login again.</div>`;
+                }
+                return false;
+            }
+        }
+
+        async function authenticate() {
+            const clientId = document.getElementById('clientId').value;
+            const clientSecret = document.getElementById('clientSecret').value;
+            const statusMessage = document.getElementById('statusMessage');
+            const loadingContainer = document.getElementById('loadingContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+
+            if (!clientId || !clientSecret) {
+                statusMessage.innerHTML = '<div class="error-message">Please enter both Client ID and Client Secret</div>';
+                return;
+            }
+
+            // Show loading state
+            loadingContainer.style.display = 'block';
+            progressFill.style.width = '100%';
+            progressText.textContent = 'Authenticating...';
+            
+            try {
+                // Create form data as specified in the docs
+                const formData = new URLSearchParams({
+                    'client_id': clientId,
+                    'client_secret': clientSecret,
+                    'grant_type': 'client_credentials',
+                    'scope': 'asset:read' // Add specific scope for reading assets
+                });
+
+                const response = await fetch('https://media.markanthony.com/v6/authentication/oauth2/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Authentication failed: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                storeTokens(data.access_token, data.refresh_token);
+                
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+                
+            } catch (error) {
+                if (error.message.includes('CORS')) {
+                    statusMessage.innerHTML = `
+                        <div class="error-message">
+                            CORS Error: Unable to access the authentication server directly. 
+                            Please ensure you have proper CORS configuration or contact your system administrator.
+                        </div>`;
+                } else {
+                    statusMessage.innerHTML = `<div class="error-message">Authentication failed: ${error.message}</div>`;
+                }
+            } finally {
+                // Hide loading state
+                loadingContainer.style.display = 'none';
+                progressFill.style.width = '0%';
+                progressText.textContent = '';
+            }
+        }
+
+        async function fetchData() {
+            if (!accessToken || needsRefresh()) {
+                if (refreshToken) {
+                    const refreshed = await refreshAccessToken();
+                    if (!refreshed) return;
+                } else {
+                    document.getElementById('statusMessage').innerHTML = 
+                        '<div class="error-message">Please authenticate first</div>';
+                    return;
+                }
+            }
+
+            const gtinInput = document.getElementById('gtinInput');
+            const inputText = gtinInput.value;
+            
+            // Split by commas, newlines, or spaces and clean up the results
+            const gtins = inputText
+                .split(/[\s,]+/) // Split by whitespace or commas
+                .map(gtin => gtin.trim()) // Trim each GTIN
+                .filter(gtin => gtin.length > 0); // Remove empty entries
+
+            if (gtins.length === 0) {
+                document.getElementById('statusMessage').innerHTML = 
+                    '<div class="error-message">Please enter at least one GTIN</div>';
+                return;
+            }
+
+            const fetchButton = document.getElementById('fetchButton');
+            const loadingContainer = document.getElementById('loadingContainer');
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            const statusMessage = document.getElementById('statusMessage');
+            const resultsTable = document.getElementById('resultsTable');
+            
+            // Clear previous results and messages
+            statusMessage.innerHTML = '';
+            resultsTable.innerHTML = '';
+            
+            // Show loading state
+            loadingContainer.style.display = 'block';
+            loadingContainer.classList.remove('completed');
+            progressText.classList.remove('completed');
+            progressFill.style.width = '0%';
+            
+            // Disable inputs during fetch
+            gtinInput.disabled = true;
+            fetchButton.disabled = true;
+
+            const totalGtins = gtins.length;
+            let processedGtins = 0;
+            const uniqueEntries = new Map();
+            let hasErrors = false;
+            const noResultsGtins = []; // Array to track GTINs with no results
+
+            for (const gtin of gtins) {
+                if (gtin.length === 14) {
+                    try {
+                        const response = await fetch(
+                            `https://media.markanthony.com/api/v4/media/?property_GTINN=${gtin}&property_Salsify_Property=*&archive=0`,
+                            {
+                                method: 'GET',
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'Authorization': `Bearer ${accessToken}`
+                                }
+                            }
+                        );
+                        
+                        if (!response.ok) {
+                            if (response.status === 401 && refreshToken) {
+                                const refreshed = await refreshAccessToken();
+                                if (refreshed) {
+                                    // Retry the request with the new token
+                                    continue;
+                                }
+                            }
+                            throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                        }
+                        
+                        const data = await response.json();
+                        
+                        // Check if we got any results for this GTIN
+                        let hasResults = false;
+                        
+                        data.forEach(item => {
+                            if (item.property_GTINN && item.property_Salsify_Properties_) {
+                                hasResults = true;
+                                item.property_Salsify_Properties_.forEach(salsifyProp => {
+                                    const key = `${item.property_GTINN[0]}-${salsifyProp}`;
+                                    const existingEntry = uniqueEntries.get(key);
+                                    
+                                    if (!existingEntry || new Date(item.datePublished) > new Date(existingEntry.datePublished)) {
+                                        uniqueEntries.set(key, {
+                                            gtin: item.property_GTINN[0],
+                                            salsifyProperty: salsifyProp,
+                                            imageUrl: getPreferredImageUrl(item.thumbnails),
+                                            datePublished: item.datePublished,
+                                            salsifyPublishDate: item.property_Salsify_Publication_Date,
+                                            name: item.name
+                                        });
+                                    }
+                                });
+                            }
+                        });
+
+                        if (!hasResults) {
+                            noResultsGtins.push(gtin);
+                        }
+
+                        processedGtins++;
+                        const progress = (processedGtins / totalGtins) * 100;
+                        progressFill.style.width = `${progress}%`;
+                        progressText.textContent = `Processing GTINs: ${processedGtins}/${totalGtins}`;
+                        
+                    } catch (error) {
+                        hasErrors = true;
+                        const errorMessage = `<div class="error-message">Error fetching data for GTIN ${gtin}: ${error.message}</div>`;
+                        statusMessage.innerHTML += errorMessage;
+                        console.error(`Error fetching data for GTIN ${gtin}:`, error);
+                        noResultsGtins.push(gtin);
+                    }
+                } else {
+                    hasErrors = true;
+                    const errorMessage = `<div class="error-message">Invalid GTIN length for ${gtin} (must be 14 digits)</div>`;
+                    statusMessage.innerHTML += errorMessage;
+                }
+            }
+
+            gtinInput.disabled = false;
+            fetchButton.disabled = false;
+            
+            // Instead of hiding, update the loading container to show completion
+            loadingContainer.classList.add('completed');
+            progressText.classList.add('completed');
+            progressFill.style.width = '100%';
+            progressText.textContent = `Completed: ${processedGtins} of ${totalGtins} GTINs processed`;
+
+            // Display no results summary if there are any
+            const noResultsSummary = document.getElementById('noResultsSummary');
+            if (noResultsGtins.length > 0) {
+                noResultsSummary.style.display = 'block';
+                noResultsSummary.innerHTML = `
+                    <h4>No results found for ${noResultsGtins.length} GTIN${noResultsGtins.length > 1 ? 's' : ''}:</h4>
+                    <ul class="no-results-list">
+                        ${noResultsGtins.map(gtin => `<li>${gtin}</li>`).join('')}
+                    </ul>
+                `;
+            } else {
+                noResultsSummary.style.display = 'none';
+            }
+
+            if (!hasErrors || uniqueEntries.size > 0) {
+                document.querySelector('.view-controls').style.display = 'block';
+                document.getElementById('exportButtons').style.display = 'block';
+                
+                const uniqueResults = Array.from(uniqueEntries.values())
+                    .sort((a, b) => new Date(b.datePublished) - new Date(a.datePublished));
+                displayConsolidatedResults(uniqueResults);
+            }
+        }
+
+        // Check for stored tokens on page load
+        window.addEventListener('load', () => {
+            const storedAccessToken = localStorage.getItem('accessToken');
+            const storedRefreshToken = localStorage.getItem('refreshToken');
+            
+            if (storedAccessToken && storedRefreshToken) {
+                accessToken = storedAccessToken;
+                refreshToken = storedRefreshToken;
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('mainContent').classList.remove('hidden');
+            }
+        });
+
+        function formatSalsifyProperty(property) {
+            // Mapping of old values to new formatted values
+            const propertyMapping = {
+                'Barcode__L3_': 'Barcode (L3)',
+                'Nutrition_Facts_Label_Image__L2_': 'Nutrition Facts Label Image (L2)',
+                'Nutrition_Ingredients_Image__L4_': 'Nutrition Ingredients Image (L4)',
+                'Packaging_View_-_Bottom__A9N1_': 'Packaging View - Bottom (A9N1)',
+                'Packaging_View_-_Back__A7N1_': 'Packaging View - Back (A7N1)',
+                'Marketing_View_-_Beauty__Wet_': 'Marketing View - Beauty (Wet)',
+                'Marketing_View_-_Front_Right_Elevated__A1R1_': 'Marketing View - Front Right Elevated (A1R1)',
+                'Marketing_View_-_Front_Center_Elevated__A1C1_': 'Marketing View - Front Center Elevated (A1C1)',
+                'Marketing_View_-_Front_Left_Elevated__A1L1_': 'Marketing View - Front Left Elevated (A1L1)',
+                'Packaging_View_-_Top__A3N1_': 'Packaging View - Top (A3N1)',
+                'Packaging_View_-_Right__A8N1_': 'Packaging View - Right (A8N1)',
+                'Packaging_View_-_Left__A2N1_': 'Packaging View - Left (A2N1)',
+                'Packaging_View_-_Front__A1N1_': 'Packaging View - Front (A1N1)',
+                'Marketing_View_-_Beauty__Dry_': 'Marketing View - Beauty (Dry)'
+            };
+
+            // Return mapped value if it exists
+            if (propertyMapping[property]) {
+                return propertyMapping[property];
+            }
+
+            // Otherwise, replace underscores with spaces
+            return property.replace(/_/g, ' ').trim();
+        }
+
+        function displayResults(results) {
+            const tableContainer = document.getElementById('resultsTable');
+            if (results.length === 0) {
+                tableContainer.innerHTML = '<p>No results found</p>';
+                return;
+            }
+
+            const now = new Date();
+
+            const table = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>GTIN</th>
+                            <th>Salsify Property</th>
+                            <th>Image</th>
+                            <th>Image URL</th>
+                            <th>Date Published</th>
+                            <th>Salsify Publish Date</th>
+                            <th>Name</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${results.map(result => {
+                            const publishDate = result.salsifyPublishDate ? new Date(result.salsifyPublishDate) : null;
+                            const dateColor = publishDate 
+                                ? (publishDate > now ? '#ffebee' : '#e8f5e9')
+                                : '';
+                            
+                            return `
+                                <tr>
+                                    <td>${result.gtin || 'N/A'}</td>
+                                    <td>${formatSalsifyProperty(result.salsifyProperty) || 'N/A'}</td>
+                                    <td><img loading="lazy" src="${result.imageUrl}" alt="${result.name}" style="max-width: 100px; height: auto;"></td>
+                                    <td><a href="${result.imageUrl}" target="_blank">${result.imageUrl}</a></td>
+                                    <td>${new Date(result.datePublished).toLocaleString() || 'N/A'}</td>
+                                    <td style="background-color: ${dateColor}">
+                                        ${result.salsifyPublishDate ? new Date(result.salsifyPublishDate).toLocaleString() : 'N/A'}
+                                    </td>
+                                    <td>${result.name || 'N/A'}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            tableContainer.innerHTML = table;
+            tableContainer.setAttribute('data-results', JSON.stringify(results));
+        }
+
+        function switchView(viewType) {
+            const buttons = document.querySelectorAll('.tab-button');
+            buttons.forEach(button => button.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const exportButtons = document.getElementById('exportButtons');
+            exportButtons.style.display = viewType === 'consolidated' ? 'block' : 'none';
+            
+            const resultsContainer = document.getElementById('resultsTable');
+            const lastResults = resultsContainer.getAttribute('data-results');
+            
+            if (lastResults) {
+                const results = JSON.parse(lastResults);
+                if (viewType === 'detailed') {
+                    displayResults(results);
+                } else {
+                    displayConsolidatedResults(results);
+                }
+            }
+        }
+
+        function displayConsolidatedResults(results) {
+            const tableContainer = document.getElementById('resultsTable');
+            if (results.length === 0) {
+                tableContainer.innerHTML = '<p>No results found</p>';
+                return;
+            }
+
+            // Get all unique Salsify Properties
+            const allProperties = new Set();
+            results.forEach(result => {
+                allProperties.add(result.salsifyProperty);
+            });
+            const propertyColumns = Array.from(allProperties).sort();
+
+            // Group results by GTIN
+            const gtinMap = new Map();
+            results.forEach(result => {
+                if (!gtinMap.has(result.gtin)) {
+                    gtinMap.set(result.gtin, {
+                        gtin: result.gtin,
+                        properties: new Map(),
+                        publishDates: new Map()
+                    });
+                }
+                const gtinData = gtinMap.get(result.gtin);
+                gtinData.properties.set(result.salsifyProperty, result.imageUrl);
+                gtinData.publishDates.set(result.salsifyProperty, result.salsifyPublishDate);
+            });
+
+            const now = new Date();
+
+            const table = `
+                <div class="horizontal-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>GTIN</th>
+                                ${propertyColumns.map(prop => 
+                                    `<th>${formatSalsifyProperty(prop)}</th>`
+                                ).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${Array.from(gtinMap.values()).map(gtinData => `
+                                <tr>
+                                    <td>${gtinData.gtin || ''}</td>
+                                    ${propertyColumns.map(prop => {
+                                        const url = gtinData.properties.get(prop) || '';
+                                        const publishDate = gtinData.publishDates.get(prop);
+                                        const isFutureDate = publishDate ? new Date(publishDate) > now : false;
+                                        return `
+                                            <td style="background-color: ${isFutureDate ? '#ffebee' : ''}">
+                                                ${url}
+                                            </td>
+                                        `;
+                                    }).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            tableContainer.innerHTML = table;
+            tableContainer.setAttribute('data-results', JSON.stringify(results));
+        }
+
+        function exportToExcel(pastDatesOnly = false) {
+            const resultsContainer = document.getElementById('resultsTable');
+            const lastResults = resultsContainer.getAttribute('data-results');
+            
+            if (!lastResults) {
+                return;
+            }
+
+            const results = JSON.parse(lastResults);
+            const now = new Date();
+            
+            // Get all unique Salsify Properties
+            const allProperties = new Set();
+            results.forEach(result => {
+                allProperties.add(result.salsifyProperty);
+            });
+            const propertyColumns = Array.from(allProperties).sort();
+
+            // Group results by GTIN
+            const gtinMap = new Map();
+            results.forEach(result => {
+                if (!gtinMap.has(result.gtin)) {
+                    gtinMap.set(result.gtin, {
+                        gtin: result.gtin,
+                        properties: new Map(),
+                        publishDates: new Map()
+                    });
+                }
+                const gtinData = gtinMap.get(result.gtin);
+                gtinData.properties.set(result.salsifyProperty, result.imageUrl);
+                gtinData.publishDates.set(result.salsifyProperty, result.salsifyPublishDate);
+            });
+
+            // Create worksheet data
+            const wsData = [];
+            
+            // Add header row
+            const headers = ['GTIN', ...propertyColumns.map(prop => formatSalsifyProperty(prop))];
+            wsData.push(headers);
+
+            // Add data rows
+            Array.from(gtinMap.values()).forEach(gtinData => {
+                const row = [gtinData.gtin];
+                
+                propertyColumns.forEach(prop => {
+                    const publishDate = gtinData.publishDates.get(prop);
+                    const isFutureDate = publishDate ? new Date(publishDate) > now : false;
+                    
+                    // If pastDatesOnly is true, blank out future dates
+                    if (pastDatesOnly && isFutureDate) {
+                        row.push('');
+                    } else {
+                        row.push(gtinData.properties.get(prop) || '');
+                    }
+                });
+                
+                wsData.push(row);
+            });
+
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'GTIN Data');
+
+            // Generate Excel file with new name format
+            const timestamp = now.toISOString().replace(/[:.]/g, '-');
+            const filename = pastDatesOnly ? 
+                `Bynder-Image-Updates-PastDatesOnly-${timestamp}.xlsx` :
+                `Bynder-Image-Updates-${timestamp}.xlsx`;
+            
+            XLSX.writeFile(wb, filename);
+        }
+
+        function getPreferredImageUrl(thumbnails) {
+            if (!thumbnails) return '';
+            return thumbnails.Ecommerce_Transparent || thumbnails.Salsify || thumbnails.Walmart || '';
+        }
+    </script>
+</body>
+</html> 
