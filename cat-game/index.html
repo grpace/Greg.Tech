@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>P2P 3D Shooter</title>
+    <style>
+        body { 
+            margin: 0; 
+            cursor: crosshair;
+        }
+        canvas { 
+            display: block; 
+        }
+        #connectionControls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px;
+        }
+        #crosshair {
+            opacity: 0.8;
+        }
+        #crosshair.hit {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.2);
+            transition: transform 0.1s ease-out;
+        }
+        #deathOverlay {
+            animation: fadeInOut 3s ease-in-out;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="connectionControls">
+        <div id="lobbySelector" style="margin-bottom: 10px;">
+            <h3 style="color: white; margin: 0 0 10px 0;">Select Lobby</h3>
+            <div style="display: flex; gap: 10px;">
+                <button class="lobbyBtn" data-lobby="1">Lobby 1</button>
+                <button class="lobbyBtn" data-lobby="2">Lobby 2</button>
+                <button class="lobbyBtn" data-lobby="3">Lobby 3</button>
+                <button class="lobbyBtn" data-lobby="4">Lobby 4</button>
+                <button class="lobbyBtn" data-lobby="5">Lobby 5</button>
+            </div>
+        </div>
+        <div id="gameId" style="display:none; color: white;">
+            Connected to Lobby: <span id="gameIdDisplay"></span>
+        </div>
+    </div>
+    
+    <div id="gameStats" style="
+        position: absolute; 
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    ">
+        <!-- Score display in top-right -->
+        <div id="scoreDisplay" style="
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            font-size: 24px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        ">
+            Score: <span id="score">0</span>
+        </div>
+
+        <!-- Health bar in bottom-center -->
+        <div style="
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+        ">
+            <div id="healthBar" style="
+                height: 8px;
+                background: rgba(0, 0, 0, 0.5);
+                border: 2px solid rgba(255, 255, 255, 0.8);
+                border-radius: 4px;
+                overflow: hidden;
+            ">
+                <div id="healthFill" style="
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(to right, #ff0000, #ff4444);
+                    transition: width 0.2s ease-out;
+                "></div>
+            </div>
+        </div>
+
+        <!-- Kill feed in top-left -->
+        <div id="killFeed" style="
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        "></div>
+    </div>
+    
+    <div id="chargeIndicator" style="
+        position: fixed;
+        bottom: 50px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        height: 10px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 2px solid white;
+        display: none;
+    ">
+        <div id="chargeBar" style="
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(to right, #ff4400, #ff0000);
+            transition: width 0.05s linear;
+        "></div>
+    </div>
+    
+    <div id="cooldownIndicator" style="
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 200px;
+        height: 5px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 1px solid white;
+        display: none;
+    ">
+        <div id="cooldownBar" style="
+            width: 100%;
+            height: 100%;
+            background: #3498db;
+            transition: width 0.1s linear;
+        "></div>
+    </div>
+    
+    <div id="countdownOverlay" style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 72px;
+        color: white;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        display: none;
+        z-index: 1000;
+    ">3</div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://threejs.org/examples/js/loaders/TextureLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
+    <script src="game.js"></script>
+    <audio id="shootSound" src="https://assets.mixkit.co/active_storage/sfx/2771/2771-preview.mp3" preload="auto"></audio>
+    <audio id="hitSound" src="https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3" preload="auto"></audio>
+    <audio id="pickupSound" src="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3" preload="auto"></audio>
+    <audio id="missileChargeSound" src="https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3" preload="auto"></audio>
+    <audio id="missileLaunchSound" src="https://assets.mixkit.co/active_storage/sfx/1485/1485-preview.mp3" preload="auto"></audio>
+    <audio id="explosionSound" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3" preload="auto"></audio>
+    <audio id="hitMarkerSound" src="https://assets.mixkit.co/active_storage/sfx/2641/2641-preview.mp3" preload="auto"></audio>
+    <audio id="deathSound" src="https://assets.mixkit.co/active_storage/sfx/2152/2152-preview.mp3" preload="auto"></audio>
+    
+    <div id="crosshair" style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        pointer-events: none;
+    ">
+        <div style="
+            position: absolute;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 6px;
+            background: rgba(0, 157, 255, 0.8);
+            box-shadow: 0 0 5px rgba(0, 157, 255, 0.8);
+        "></div>
+        <div style="
+            position: absolute;
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 6px;
+            background: rgba(0, 157, 255, 0.8);
+            box-shadow: 0 0 5px rgba(0, 157, 255, 0.8);
+        "></div>
+        <div style="
+            position: absolute;
+            top: 50%;
+            left: 0;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 2px;
+            background: rgba(0, 157, 255, 0.8);
+            box-shadow: 0 0 5px rgba(0, 157, 255, 0.8);
+        "></div>
+        <div style="
+            position: absolute;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            width: 6px;
+            height: 2px;
+            background: rgba(0, 157, 255, 0.8);
+            box-shadow: 0 0 5px rgba(0, 157, 255, 0.8);
+        "></div>
+    </div>
+    
+    <div id="hitMarker" style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0);
+        width: 40px;
+        height: 40px;
+        pointer-events: none;
+        transition: transform 0.1s ease-out;
+        z-index: 1001;
+    ">
+        <div style="
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: white;
+            top: 50%;
+            transform: translateY(-50%) rotate(45deg);
+        "></div>
+        <div style="
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: white;
+            top: 50%;
+            transform: translateY(-50%) rotate(-45deg);
+        "></div>
+    </div>
+</body>
+</html> 
