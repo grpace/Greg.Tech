@@ -18,16 +18,12 @@ template.innerHTML = `
 }
 
 #install {
-  position: fixed; /* Keeps it in place while scrolling */
-  bottom: 20px; /* Stays at the bottom of the screen */
-  left: 50%; /* Centers it horizontally */
-  transform: translateX(-50%); /* Ensures perfect centering */
   height: 100px;
   padding: 10px;
   background: #F5F5F4;
   border: 1px solid #333;
   line-height: 30px;
-  z-index: 1000; /* Ensures it stays above other elements */
+  text-align: center;
 }
 
 #share {
