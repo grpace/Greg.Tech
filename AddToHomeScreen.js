@@ -11,7 +11,6 @@ template.innerHTML = `
   left: 50%;
   transform: translateX(-50%);
   color: #333;
-  font-family: 'sans-serif, inherit';
 }
 
 :host([hidden]) {
@@ -22,10 +21,8 @@ template.innerHTML = `
   height: 100px;
   padding: 10px;
   background: #F5F5F4;
-  width: 90%;
   border: 1px solid #333;
   line-height: 30px;
-  font-family: 'sans-serif, inherit';
 }
 
 #share {
@@ -66,8 +63,11 @@ template.innerHTML = `
 }
 </style>
 <div id="install">
-  Install as an app for the best experience. <br>It's easy, just tap
-  <img id="share" src="data:image/png;base64,${iOSShareBase64}"> and then scroll and click <br>"Add to Home Screen".
+  Install as an app for the best experience.
+  <br>
+  It's easy, just tap <img id="share" src="data:image/png;base64,${iOSShareBase64}"> then scroll and click
+  <br>
+  "Add to Home Screen".
 </div>
 <div id="arrowOuter"></div>
 <div id="arrowInner"></div>
