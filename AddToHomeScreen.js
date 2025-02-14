@@ -67,7 +67,7 @@ template.innerHTML = `
 </style>
 <div id="install">
   Install as an app for the best experience. It's easy, just tap
-  <img id="share" src="data:image/png;base64,${iOSShareBase64}"> and then "Add to Home Screen".
+  <img id="share" src="data:image/png;base64,${iOSShareBase64}"> and then scroll and click "Add to Home Screen".
 </div>
 <div id="arrowOuter"></div>
 <div id="arrowInner"></div>
