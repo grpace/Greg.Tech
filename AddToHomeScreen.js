@@ -78,9 +78,9 @@ template.innerHTML = `
 export default class AddToHomeScreen extends HTMLElement {
   constructor() {
     super();
-    this.attachShadow({mode: 'open'});
+    this.attachShadow({ mode: 'open' });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
-    this._closeClick = closeClick.bind(this);
+    this._closeClick = this._closeClick.bind(this);
   }
 
   connectedCallback() {
@@ -91,12 +91,8 @@ export default class AddToHomeScreen extends HTMLElement {
     const urlParams = new URLSearchParams(window.location.search);
     const isTest = urlParams.has('test'); 
 
-    if ((iOSSafari && !navigator.standalone) || isTest) {
-      this.style.display = 'inline-block';
-      this.shadowRoot.getElementById('close').addEventListener('click', this._closeClick);
-    }
-
-    if ((iOSSafari && !navigator.standalone) || isTest) {
+    // Check if the cookie exists before displaying the prompt
+    if ((!this._getCookie("hideAddToHome") && (iOSSafari && !navigator.standalone)) || isTest) {
       this.style.display = 'inline-block';
       this.shadowRoot.getElementById('close').addEventListener('click', this._closeClick);
     }
@@ -105,10 +101,33 @@ export default class AddToHomeScreen extends HTMLElement {
   disconnectedCallback() {
     this.shadowRoot.getElementById('close').removeEventListener('click', this._closeClick);
   }
-}
 
-function closeClick() {
-  this.style.display = 'none';
+  _closeClick() {
+    this.style.display = 'none';
+    this._setCookie("hideAddToHome", "true", 30); // Set the cookie for 30 days
+  }
+
+  // Function to set a cookie
+  _setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+      let date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000)); // Convert days to milliseconds
+      expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + value + expires + "; path=/";
+  }
+
+  // Function to get a cookie
+  _getCookie(name) {
+    let nameEQ = name + "=";
+    let ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i].trim();
+      if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length);
+    }
+    return null;
+  }
 }
 
 window.customElements.define('add-to-home-screen', AddToHomeScreen);
