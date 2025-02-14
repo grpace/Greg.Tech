@@ -25,6 +25,7 @@ template.innerHTML = `
   width: 100%;
   border: 1px solid #333;
   line-height: 30px;
+  font-family: 'inherit';
 }
 
 #share {
