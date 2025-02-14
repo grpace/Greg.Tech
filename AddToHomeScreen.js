@@ -22,7 +22,7 @@ template.innerHTML = `
   height: 100px;
   padding: 10px;
   background: #F5F5F4;
-  width: 280px;
+  width: 100%;
   border: 1px solid #333;
   line-height: 30px;
 }
