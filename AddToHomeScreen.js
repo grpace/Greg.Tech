@@ -87,8 +87,15 @@ export default class AddToHomeScreen extends HTMLElement {
     const iOS = !!ua.match(/iPad/i) || !!ua.match(/iPhone/i);
     const webkit = !!ua.match(/WebKit/i);
     const iOSSafari = iOS && webkit && !ua.match(/CriOS/i);
+    const urlParams = new URLSearchParams(window.location.search);
+    const isTest = urlParams.has('test'); 
 
-    if (iOSSafari && !navigator.standalone) {
+    if ((iOSSafari && !navigator.standalone) || isTest) {
+      this.style.display = 'inline-block';
+      this.shadowRoot.getElementById('close').addEventListener('click', this._closeClick);
+    }
+
+    if ((iOSSafari && !navigator.standalone) || isTest) {
       this.style.display = 'inline-block';
       this.shadowRoot.getElementById('close').addEventListener('click', this._closeClick);
     }
