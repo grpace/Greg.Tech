@@ -194,22 +194,19 @@ body {
 
 .about-grid {
     display: grid;
-    grid-template-columns: minmax(300px, 1fr) 2fr;
-    grid-template-areas:
-        "photo header"
-        "desc desc";
+    grid-template-columns: 1.5fr 1fr;
     gap: 2rem;
     margin-top: 2rem;
     background: white;
     border-radius: 1.5rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-    padding: 3rem;
+    padding: 2rem;
     border: 1px solid rgba(0, 0, 0, 0.05);
+    align-items: center;
 }
 
 .profile-container {
-    grid-area: photo;
-    text-align: center;
+    text-align: right;
     padding: 0;
     border-radius: 1rem;
     align-self: center;
@@ -217,25 +214,23 @@ body {
 
 .profile-image {
     width: 100%;
-    max-width: 300px;
-    border-radius: 1rem;
+    max-width: 350px;
     margin-bottom: 0;
-    /* No filter effect - showing image as is */
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    aspect-ratio: 1;
+    position: absolute;
+    right: 100px;
+    bottom: 0;
     object-fit: cover;
 }
 
-.profile-image:hover {
-    /* Just elevation effect on hover, no filter change */
-    transform: translateY(-5px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+/* Remove hover effects for desktop */
+@media (min-width: 769px) {
+    .profile-image {
+        transition: none;
+    }
 }
 
 .about-content {
-    grid-area: header;
-    padding: 1.5rem;
+    padding: 1rem 0;
 }
 
 .about-content h1 {
@@ -275,7 +270,6 @@ body {
 
     .about-grid {
         grid-template-columns: 1fr;
-        grid-template-areas: "header";
         gap: 1.5rem;
         padding: 2rem;
         margin-top: 2.5rem; /* Reduced from 4.5rem to 2.5rem */
@@ -284,6 +278,7 @@ body {
     .about-content {
         padding: 0;
         text-align: left;
+        order: 2; /* Move content below the image on mobile */
     }
 
     .about-content h1 {
@@ -306,11 +301,16 @@ body {
     }
 
     .profile-container {
-        display: none;
+        display: none; /* Hide the main image container */
     }
 
     .about-content p {
         margin-top: 1.5rem;
+    }
+
+    /* Add transition back for mobile hover effect */
+    .profile-image {
+        transition: all 0.3s ease;
     }
 }
 
@@ -610,6 +610,7 @@ section h2:hover::after {
     padding: 2px;
     background: linear-gradient(135deg, var(--accent-color), var(--accent-tertiary));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     opacity: 0;
