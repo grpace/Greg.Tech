@@ -46,7 +46,7 @@ window.addEventListener('scroll', () => {
     }
 });
 
-// Advanced scroll animations with staggered reveal
+// Improved scroll animations with better performance
 const animateElements = () => {
     // Elements to animate
     const sections = document.querySelectorAll('section');
@@ -55,10 +55,21 @@ const animateElements = () => {
     const projectContent = document.querySelector('.project-content');
     const featureItems = document.querySelectorAll('.feature-list li');
 
-    // Observer options
+    // Check if element is in initial viewport
+    const isInInitialViewport = (element) => {
+        const rect = element.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+    };
+
+    // Observer options with larger rootMargin for better preloading
     const options = {
         root: null,
-        rootMargin: '0px',
+        rootMargin: '50px',
         threshold: 0.1
     };
 
@@ -82,26 +93,33 @@ const animateElements = () => {
         });
     }, options);
 
-    // Card observer with staggered animation
+    // Card observer with simplified animation (no staggering on mobile)
     const cardObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry, index) => {
             if (entry.isIntersecting) {
-                // Staggered animation delay
+                // Reduced delay for better performance
+                const isMobile = window.innerWidth < 768;
+                const delay = isMobile ? 0 : Math.min(index * 100, 300);
+
                 setTimeout(() => {
                     entry.target.classList.add('card-visible');
-                }, index * 150);
+                }, delay);
                 cardObserver.unobserve(entry.target);
             }
         });
     }, options);
 
-    // Feature list observer
+    // Feature list observer with simplified animation
     const featureObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry, index) => {
             if (entry.isIntersecting) {
+                // Reduced delay for better performance
+                const isMobile = window.innerWidth < 768;
+                const delay = isMobile ? 0 : Math.min(index * 50, 200);
+
                 setTimeout(() => {
                     entry.target.classList.add('feature-visible');
-                }, index * 100);
+                }, delay);
                 featureObserver.unobserve(entry.target);
             }
         });
@@ -117,30 +135,58 @@ const animateElements = () => {
         });
     }, options);
 
-    // Apply observers to elements
+    // Apply animations with initial viewport check
     sections.forEach(section => {
-        section.classList.add('section-animate');
-        sectionObserver.observe(section);
+        if (isInInitialViewport(section)) {
+            // If in initial viewport, show immediately
+            section.classList.add('section-visible');
+        } else {
+            // Otherwise, animate on scroll
+            section.classList.add('section-animate');
+            sectionObserver.observe(section);
+        }
     });
 
     sectionTitles.forEach(title => {
-        title.classList.add('title-animate');
-        titleObserver.observe(title);
+        if (isInInitialViewport(title)) {
+            title.classList.add('title-visible');
+        } else {
+            title.classList.add('title-animate');
+            titleObserver.observe(title);
+        }
     });
 
-    serviceCards.forEach(card => {
-        card.classList.add('card-animate');
-        cardObserver.observe(card);
+    serviceCards.forEach((card, index) => {
+        if (isInInitialViewport(card)) {
+            // Show immediately with minimal delay
+            setTimeout(() => {
+                card.classList.add('card-visible');
+            }, index * 50);
+        } else {
+            card.classList.add('card-animate');
+            cardObserver.observe(card);
+        }
     });
 
     if (projectContent) {
-        projectContent.classList.add('project-animate');
-        projectObserver.observe(projectContent);
+        if (isInInitialViewport(projectContent)) {
+            projectContent.classList.add('project-visible');
+        } else {
+            projectContent.classList.add('project-animate');
+            projectObserver.observe(projectContent);
+        }
     }
 
-    featureItems.forEach(item => {
-        item.classList.add('feature-animate');
-        featureObserver.observe(item);
+    featureItems.forEach((item, index) => {
+        if (isInInitialViewport(item)) {
+            // Show immediately with minimal delay
+            setTimeout(() => {
+                item.classList.add('feature-visible');
+            }, index * 30);
+        } else {
+            item.classList.add('feature-animate');
+            featureObserver.observe(item);
+        }
     });
 };
 
@@ -166,28 +212,41 @@ const parallaxEffect = () => {
     });
 };
 
-// Add CSS for animations - optimized and cleaned up
+// Add CSS for animations - optimized for performance
 const addAnimationStyles = () => {
     const style = document.createElement('style');
     style.textContent = `
-        /* Base animation properties */
+        /* Base animation properties - simplified for better performance */
         .section-animate, .title-animate, .card-animate, .project-animate, .feature-animate {
             opacity: 0;
             transition-property: opacity, transform;
             transition-timing-function: ease;
+            will-change: opacity, transform;
         }
 
-        /* Specific animation settings */
-        .section-animate { transform: translateY(20px); transition-duration: 0.8s; }
-        .title-animate { transform: translateY(-15px); transition-duration: 0.6s; }
-        .card-animate { transform: translateY(20px); transition-duration: 0.6s; transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .project-animate { transform: translateY(25px); transition-duration: 0.8s; transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        .feature-animate { transform: translateX(-15px); transition-duration: 0.5s; }
+        /* Specific animation settings - reduced intensity for better performance */
+        .section-animate { transform: translateY(15px); transition-duration: 0.5s; }
+        .title-animate { transform: translateY(-10px); transition-duration: 0.5s; }
+        .card-animate { transform: translateY(15px); transition-duration: 0.5s; }
+        .project-animate { transform: translateY(15px); transition-duration: 0.5s; }
+        .feature-animate { transform: translateX(-10px); transition-duration: 0.4s; }
 
         /* Visible state for all elements */
         .section-visible, .title-visible, .card-visible, .project-visible, .feature-visible {
             opacity: 1;
             transform: translate(0);
+        }
+
+        /* Reduce animation complexity on mobile */
+        @media (max-width: 768px) {
+            .section-animate, .title-animate, .card-animate, .project-animate, .feature-animate {
+                transition-duration: 0.3s !important;
+            }
+            .section-animate { transform: translateY(10px); }
+            .title-animate { transform: translateY(-5px); }
+            .card-animate { transform: translateY(10px); }
+            .project-animate { transform: translateY(10px); }
+            .feature-animate { transform: translateX(-5px); }
         }
     `;
     document.head.appendChild(style);
@@ -215,11 +274,29 @@ document.addEventListener('DOMContentLoaded', () => {
     updateScrollProgress(); // Initial call
 });
 
-// Initial check for elements in view
+// Ensure elements in initial viewport are visible immediately
 window.addEventListener('load', () => {
-    // Trigger animations after page load
-    setTimeout(() => {
-        window.scrollBy(0, 1);
-        window.scrollBy(0, -1);
-    }, 100);
+    // Apply visible class to all elements with animation classes that are in viewport
+    document.querySelectorAll('.section-animate, .title-animate, .card-animate, .project-animate, .feature-animate').forEach(el => {
+        // Check if element is in viewport and doesn't already have visible class
+        const rect = el.getBoundingClientRect();
+        const isInViewport = (
+            rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.bottom > 0
+        );
+
+        if (isInViewport && !el.classList.contains('section-visible') &&
+            !el.classList.contains('title-visible') &&
+            !el.classList.contains('card-visible') &&
+            !el.classList.contains('project-visible') &&
+            !el.classList.contains('feature-visible')) {
+
+            // Add appropriate visible class based on animate class
+            if (el.classList.contains('section-animate')) el.classList.add('section-visible');
+            if (el.classList.contains('title-animate')) el.classList.add('title-visible');
+            if (el.classList.contains('card-animate')) el.classList.add('card-visible');
+            if (el.classList.contains('project-animate')) el.classList.add('project-visible');
+            if (el.classList.contains('feature-animate')) el.classList.add('feature-visible');
+        }
+    });
 });
