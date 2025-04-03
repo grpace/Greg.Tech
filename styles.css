@@ -236,7 +236,10 @@ body {
 .about-content h1 {
     font-size: 2.8rem;
     margin-bottom: 1.5rem;
-    color: var(--text-color);
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--accent-tertiary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .about-content .tagline {
@@ -455,7 +458,7 @@ section h2 {
     font-size: 2.8rem;
     margin-bottom: 3.5rem;
     text-align: center;
-    background: linear-gradient(90deg, var(--text-color), var(--primary-color));
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--accent-tertiary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -482,7 +485,7 @@ section h2::after {
     transform: translateX(-50%);
     width: 100px;
     height: 4px;
-    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--accent-tertiary));
     border-radius: 2px;
     transition: width 0.3s ease;
 }
@@ -513,7 +516,7 @@ section h2:hover::after {
 }
 
 .services h2 {
-    background: linear-gradient(90deg, white, rgba(255, 255, 255, 0.8));
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color), var(--accent-tertiary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -628,10 +631,13 @@ section h2:hover::after {
 
 .service-card h3 {
     margin-bottom: 1.2rem;
-    color: white;
     font-size: 1.6rem;
     position: relative;
     display: inline-block;
+    background: linear-gradient(90deg, white, rgba(255, 255, 255, 0.9));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .service-card h3::after {
@@ -641,7 +647,7 @@ section h2:hover::after {
     left: 0;
     width: 0;
     height: 2px;
-    background: var(--accent-color);
+    background: linear-gradient(90deg, var(--accent-color), var(--accent-tertiary));
     transition: width 0.3s ease;
 }
 
@@ -871,7 +877,9 @@ section h2:hover::after {
 }
 
 .cta-button {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
     padding: 1rem 2.5rem;
     background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
     color: white !important;
@@ -890,6 +898,11 @@ section h2:hover::after {
     .cta-button {
         transition: var(--transition-bounce);
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Add margin-top to the 'Let's Work Together' button in about section */
+    .about-content .cta-button {
+        margin-top: 1rem;
     }
 
     .cta-button::before {
@@ -1027,9 +1040,92 @@ main {
     width: 100%;
 }
 
+.footer-quote {
+    margin-bottom: 1.5rem;
+}
+
+.quote-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: white;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    position: relative;
+    display: inline-block;
+    padding: 0.5rem 1rem;
+}
+
+.quote-mark {
+    font-size: 1.8rem;
+    display: inline-block;
+    vertical-align: middle;
+    position: relative;
+}
+
+.quote-mark.left {
+    margin-right: 0.2rem;
+    transform: translateY(-0.2rem);
+    background: linear-gradient(135deg, var(--accent-tertiary), var(--primary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.quote-mark.right {
+    margin-left: 0.2rem;
+    transform: translateY(0.2rem);
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-tertiary));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.quote-text::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    transform-origin: right;
+    transform: scaleX(0);
+    transition: transform 0.5s ease;
+}
+
+.quote-text:hover::before {
+    transform-origin: left;
+    transform: scaleX(1);
+}
+
 .footer p {
     margin: 0;
     font-size: 0.9rem;
+}
+
+/* Responsive styling for footer quote */
+@media (max-width: 768px) {
+    .quote-text {
+        font-size: 1.2rem;
+    }
+
+    .quote-mark {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .quote-text {
+        font-size: 1rem;
+    }
+
+    .quote-mark {
+        font-size: 1.3rem;
+    }
 }
 
 /* Scroll Progress Indicator - Hidden on Mobile */
