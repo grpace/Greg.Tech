@@ -234,6 +234,91 @@ const updateScrollProgress = () => {
     updateProgress();
 };
 
+// Project Slider functionality
+const initProjectSlider = () => {
+    const sliderTrack = document.querySelector('.slider-track');
+    const slides = document.querySelectorAll('.project-slide');
+    const prevButton = document.querySelector('.slider-prev');
+    const nextButton = document.querySelector('.slider-next');
+    const indicators = document.querySelectorAll('.slider-indicators .indicator');
+    
+    if (!sliderTrack || slides.length === 0) return;
+    
+    let currentSlide = 0;
+    const slideCount = slides.length;
+    
+    // Set initial position
+    const updateSlider = () => {
+        // Update the transform of the track
+        sliderTrack.style.transform = `translateX(-${currentSlide * 100}%)`;
+        
+        // Update indicators
+        indicators.forEach((indicator, index) => {
+            if (index === currentSlide) {
+                indicator.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+            }
+        });
+        
+        // Update button states (optional: disable at ends)
+        prevButton.disabled = currentSlide === 0;
+        nextButton.disabled = currentSlide === slideCount - 1;
+    };
+    
+    // Event listeners for controls
+    prevButton.addEventListener('click', () => {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateSlider();
+        }
+    });
+    
+    nextButton.addEventListener('click', () => {
+        if (currentSlide < slideCount - 1) {
+            currentSlide++;
+            updateSlider();
+        }
+    });
+    
+    // Indicator buttons
+    indicators.forEach((indicator, index) => {
+        indicator.addEventListener('click', () => {
+            currentSlide = index;
+            updateSlider();
+        });
+    });
+    
+    // Initialize slider
+    updateSlider();
+    
+    // Optional: Add touch/swipe support
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    sliderTrack.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, {passive: true});
+    
+    sliderTrack.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, {passive: true});
+    
+    const handleSwipe = () => {
+        const swipeThreshold = 50;
+        if (touchEndX < touchStartX - swipeThreshold && currentSlide < slideCount - 1) {
+            // Swipe left
+            currentSlide++;
+            updateSlider();
+        } else if (touchEndX > touchStartX + swipeThreshold && currentSlide > 0) {
+            // Swipe right
+            currentSlide--;
+            updateSlider();
+        }
+    };
+};
+
 // Initialize all animations and features when DOM is loaded - optimized for mobile
 document.addEventListener('DOMContentLoaded', () => {
     // Add animation styles first
@@ -247,6 +332,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize scroll progress (will be disabled on mobile)
     updateScrollProgress();
+    
+    // Initialize project slider
+    initProjectSlider();
 });
 
 // No need for the extra load event listener since we're handling everything in animateElements
