@@ -523,7 +523,7 @@
                 if (gtin.length === 14) {
                     try {
                         const response = await fetch(
-                            `https://media.markanthony.com/api/v4/media/?property_GTINN=${gtin}&property_Salsify_Property=*&archive=0`,
+                            `https://media.markanthony.com/api/v4/media/?property_GTINN=${gtin}&property_Salsify_Property=*&archive=0&limit=1000`,
                             {
                                 method: 'GET',
                                 headers: {
