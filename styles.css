@@ -42,6 +42,7 @@ body {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    background: var(--dark-background);
 }
 
 .container {
