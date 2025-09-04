@@ -80,6 +80,17 @@
                     </div>
                 </div>
             </div>
+            
+            <div>
+                 <label class="block text-sm font-medium text-slate-100 mb-1">2. Public URL Details (Optional)</label>
+                 <p class="text-xs text-slate-300 mb-2">Fill these in to generate a full public URL for each media item.</p>
+                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <input type="text" id="org-domain" placeholder="Org Domain (e.g., https://...)" class="w-full p-3 bg-white/10 border border-white/30 rounded-md text-white placeholder-slate-300 focus:ring-2 focus:ring-white/50 focus:border-white/50 transition">
+                     <input type="text" id="channel-id" placeholder="Channel ID (15 Characters)" class="w-full p-3 bg-white/10 border border-white/30 rounded-md text-white placeholder-slate-300 focus:ring-2 focus:ring-white/50 focus:border-white/50 transition">
+                     <input type="text" id="org-id" placeholder="Org ID (e.g., 00D...)" class="w-full p-3 bg-white/10 border border-white/30 rounded-md text-white placeholder-slate-300 focus:ring-2 focus:ring-white/50 focus:border-white/50 transition sm:col-span-2">
+                 </div>
+            </div>
+
             <div>
                 <button id="extract-csv" class="w-full bg-white/30 text-white font-bold py-3 px-4 rounded-md hover:bg-white/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/80 transition-all duration-200 ease-in-out flex items-center justify-center disabled:bg-slate-400/50">
                     <svg id="extract-button-icon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0v6m0-6h6m-6 0H6"></path></svg>
@@ -111,7 +122,7 @@
 
             <div class="pt-4 mt-4 border-t border-white/30">
                 <h3 class="font-semibold text-white mb-2">Exporting Data from Salesforce</h3>
-                 <p>Upload a <code class="bg-black/20 text-xs p-1 rounded">.zip</code> file exported from Salesforce. The tool will find every <code class="bg-black/20 text-xs p-1 rounded">content.json</code> file, extract key information (<code class="bg-black/20 text-xs p-1 rounded">title</code>, <code class="bg-black/20 text-xs p-1 rounded">urlName</code>, and media <code class="bg-black/20 text-xs p-1 rounded">url</code>), and compile it into a downloadable CSV file.</p>
+                 <p>Upload a <code class="bg-black/20 text-xs p-1 rounded">.zip</code> file exported from Salesforce. The tool will find every <code class="bg-black/20 text-xs p-1 rounded">content.json</code> file and extract key information. If you provide your org details, it will also construct a full <code class="bg-black/20 text-xs p-1 rounded">Public URL</code> for each media item.</p>
             </div>
         </div>
     </div>
@@ -245,6 +256,10 @@
         const zipUploadEl = document.getElementById('zip-upload');
         const exportDropzone = document.getElementById('export-dropzone');
         const exportFileCountEl = document.getElementById('export-file-count');
+        
+        const orgDomainEl = document.getElementById('org-domain');
+        const channelIdEl = document.getElementById('channel-id');
+        const orgIdEl = document.getElementById('org-id');
 
         setupDropzone(exportDropzone, zipUploadEl, exportFileCountEl);
 
@@ -254,6 +269,10 @@
                 alert('Please upload a ZIP file.');
                 return;
             }
+            
+            const orgDomain = orgDomainEl.value.trim();
+            const channelId = channelIdEl.value.trim();
+            const orgId = orgIdEl.value.trim();
 
             setLoadingState(extractButton, extractButtonText, extractButtonIcon, true, 'Extract and Download CSV');
             exportStatusEl.textContent = `Reading ${zipFile.name}...`;
@@ -276,7 +295,7 @@
                 exportStatusEl.textContent = `Found ${promises.length} content items. Extracting data...`;
                 
                 const jsonContents = await Promise.all(promises);
-                let csvData = [['Title', 'URL Name', 'Media URL']];
+                let csvData = [['Title', 'URL Name', 'Media URL', 'Content Key', 'Public URL']];
                 
                 jsonContents.forEach(jsonString => {
                     try {
@@ -284,7 +303,19 @@
                         const title = data.title || '';
                         const urlName = data.urlName || '';
                         const mediaUrl = data.contentBody?.['sfdc_cms:media']?.url || '';
-                        csvData.push([title, urlName, mediaUrl]);
+                        
+                        let contentKey = '';
+                        if (mediaUrl) {
+                            const urlParts = mediaUrl.split('?')[0].split('/');
+                            contentKey = urlParts[urlParts.length - 1] || '';
+                        }
+
+                        let publicUrl = '';
+                        if(orgDomain && channelId && orgId && contentKey) {
+                            publicUrl = `${orgDomain}/cms/delivery/media/${contentKey}?channelId=${channelId}&oid=${orgId}`;
+                        }
+
+                        csvData.push([title, urlName, mediaUrl, contentKey, publicUrl]);
                     } catch(e) {
                         console.warn('Could not parse a content.json file', e);
                     }
