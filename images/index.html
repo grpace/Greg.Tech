@@ -312,7 +312,7 @@
 
                         let publicUrl = '';
                         if(orgDomain && channelId && orgId && contentKey) {
-                            publicUrl = `${orgDomain}/cms/delivery/media/${contentKey}?channelId=${channelId}&oid=${orgId}`;
+                            publicUrl = `${orgDomain}/cdn-cgi/image/format=auto/sfsites/c/cms/delivery/media/${contentKey}?channelId=${channelId}&oid=${orgId}`;
                         }
 
                         csvData.push([title, urlName, mediaUrl, contentKey, publicUrl]);
