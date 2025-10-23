@@ -832,12 +832,12 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                                 const assignments = [];
                                 if (manual) assignments.push(manual);
                                 if (automated) assignments.push(automated);
-                                const combinedAssignments = assignments.join(',');                                // Get unique, non-empty distributor IDs
+                                const combinedAssignments = assignments.join(',');                                // Get unique, non-empty distributor IDs (ignore NULL values)
                                 const uniqueDistIds = [
                                     ...new Set(
                                         combinedAssignments.split(',')
                                             .map(id => id.trim())
-                                            .filter(id => id && id.length > 0)
+                                            .filter(id => id && id.length > 0 && id.toUpperCase() !== 'NULL')
                                     )
                                 ];
 
