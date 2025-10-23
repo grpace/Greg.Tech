@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delegated Account Import Generator</title>
+    
+    <!-- Load PapaParse for CSV parsing (using jsdelivr CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Mermaid.js script removed -->
+    
+    <style>
+        /* Use Inter font */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Style for the glass panels */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 1rem; /* rounded-2xl */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Style for the file dropzone */
+        .dropzone {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        
+        .dropzone-active {
+            border-color: rgba(255, 255, 255, 0.8);
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Style for the code block */
+        pre.code-block {
+            background: rgba(0, 0, 0, 0.3);
+            color: #f1f5f9; /* slate-100 */
+            padding: 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: auto;
+            font-size: 0.875rem; /* text-sm */
+        }
+
+        /* Custom spinner animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Styles for file status indicators */
+        .file-status {
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+        .file-status-success {
+            color: #86efac; /* green-300 */
+        }
+        .file-status-error {
+            color: #fca5a5; /* red-300 */
+        }
+        .file-status-parsing {
+            color: #a5f3fc; /* cyan-200 */
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center min-h-screen py-10 px-4">
+
+    <div class="w-full max-w-3xl space-y-6">
+
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-white">Delegated Account Import Generator</h1>
+            <p class="text-slate-200 mt-2">Upload your CSV files to generate the final import file.</p>
+        </div>
+
+        <!-- Section 1: Distributor Look Up -->
+        <div class="glass-panel p-6 w-full">
+            <h2 class="text-xl font-semibold text-white mb-3">1. Distributor Look Up Table</h2>
+            <p class="text-sm text-slate-200 mb-2">This table provides the mapping from `MasterDistID` to `DistributorName`.</p>
+            <pre class="code-block mb-4">SELECT * FROM BIZDATA.dbo.vMasterDistributors -- master distributor list</pre>
+            
+            <label class="block text-sm font-medium text-slate-100 mb-1">Upload Distributor Lookup CSV</label>
+            <p class="text-xs text-slate-300 mb-2">Required columns: `MasterDistID`, `DistributorName`</p>
+            <div id="distributor-dropzone" class="dropzone">
+                <input type="file" id="distributor-upload" class="hidden" accept=".csv">
+                <div id="distributor-dropzone-text">
+                    <svg class="mx-auto h-10 w-10 text-slate-200" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <p class="mt-2 text-sm text-slate-100"><span class="font-semibold text-white">Click to upload</span> or drag and drop</p>
+                    <p class="text-xs text-slate-300" id="distributor-file-count">
+                        <span class="file-name">No file selected</span>
+                        <span class="file-status"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Salesforce User Details -->
+        <div class="glass-panel p-6 w-full">
+            <h2 class="text-xl font-semibold text-white mb-3">2. Salesforce User Details</h2>
+            <p class="text-sm text-slate-200 mb-2">This file provides the user information based on their email address.</p>
+            
+            <label class="block text-sm font-medium text-slate-100 mb-1">Upload Salesforce User Details CSV</label>
+            <p class="text-xs text-slate-300 mb-2">Required columns: `Email` (or `Contact.Email`), `Id`, `Name`, `Contact.Gatekeeper_Contact_Id__c`</p>
+            <div id="salesforce-dropzone" class="dropzone">
+                <input type="file" id="salesforce-upload" class="hidden" accept=".csv">
+                <div id="salesforce-dropzone-text">
+                    <svg class="mx-auto h-10 w-10 text-slate-200" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <p class="mt-2 text-sm text-slate-100"><span class="font-semibold text-white">Click to upload</span> or drag and drop</p>
+                    <p class="text-xs text-slate-300" id="salesforce-file-count">
+                        <span class="file-name">No file selected</span>
+                        <span class="file-status"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Gatekeeper Extract -->
+        <div class="glass-panel p-6 w-full">
+            <h2 class="text-xl font-semibold text-white mb-3">3. Gatekeeper Extract</h2>
+            <p class="text-sm text-slate-200 mb-2">This file contains the distributor assignments for each user.</p>
+            
+            <label class="block text-sm font-medium text-slate-100 mb-1">Upload Gatekeeper Extract CSV</label>
+            <p class="text-xs text-slate-300 mb-2">Required columns: `Email`, `Manual Distributor Assignments`, `Automated Distributor Assignments`</p>
+            <div id="gatekeeper-dropzone" class="dropzone">
+                <input type="file" id="gatekeeper-upload" class="hidden" accept=".csv">
+                <div id="gatekeeper-dropzone-text">
+                    <svg class="mx-auto h-10 w-10 text-slate-200" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <p class="mt-2 text-sm text-slate-100"><span class="font-semibold text-white">Click to upload</span> or drag and drop</p>
+                    <p class="text-xs text-slate-300" id="gatekeeper-file-count">
+                        <span class="file-name">No file selected</span>
+                        <span class="file-status"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Email Filter (Optional) -->
+        <div class="glass-panel p-6 w-full">
+            <h2 class="text-xl font-semibold text-white mb-3">4. Email Filter (Optional)</h2>
+            <p class="text-sm text-slate-200 mb-2">To process only specific users, paste a list of emails below (separated by commas or new lines). If left empty, all users in the Gatekeeper file will be processed.</p>
+            <textarea id="email-filter" rows="5" class="w-full p-3 bg-white/10 border border-white/30 rounded-lg text-white placeholder-slate-300 focus:ring-2 focus:ring-white/50 focus:border-white/50 transition" placeholder="e.g., user1@example.com, user2@example.com
+user3@example.com"></textarea>
+        </div>
+
+        <!-- Section 5: Generate File -->
+        <div class="glass-panel p-6 w-full">
+            <h2 class="text-xl font-semibold text-white mb-3">5. Generate Import File</h2>
+            <p class="text-sm text-slate-200 mb-4">Click the button below to process the uploaded files and download the "Delegated Accounts Import.csv".</p>
+            <button id="generate-csv" class="w-full bg-white/30 text-white font-bold py-3 px-4 rounded-lg hover:bg-white/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/80 transition-all duration-200 ease-in-out flex items-center justify-center disabled:bg-slate-400/50">
+                <svg id="generate-button-icon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span id="generate-button-text">Generate and Download CSV</span>
+            </button>
+            <button id="clear-all" class="w-full bg-transparent border border-white/30 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200 ease-in-out mt-3">
+                Clear All Inputs
+            </button>
+            <!-- Message Box for status/errors -->
+            <div id="status-message" class="hidden mt-4 p-4 rounded-lg text-sm text-center"></div>
+        </div>
+
+        <!-- Section 6: How It Works -->
+        <div class="glass-panel p-6 w-full text-slate-200">
+            <h2 class="text-xl font-semibold text-white mb-3">How This Tool Works</h2>
+            <div class="space-y-4 text-sm">
+                <p>This tool manually stitches together three separate data sources to create a single import file. The entire process happens in your browser—no data is uploaded to any server.</p>
+                <ol class="list-decimal list-inside space-y-2 pl-2">
+                    <li>
+                        <strong class="font-medium text-white">Create Lookup Maps:</strong> First, the tool reads the <strong class="text-white">Distributor Lookup</strong> and <strong class="text-white">Salesforce User Details</strong> files into memory. It creates two "lookup maps" (like a dictionary):
+                        <ul class="list-disc list-inside pl-4 mt-1">
+                            <li>A map to find a <code class="text-xs p-1 bg-black/20 rounded">DistributorName</code> from a <code class="text-xs p-1 bg-black/20 rounded">MasterDistID</code>.</li>
+                            <li>A map to find a user's <code class="text-xs p-1 bg-black/20 rounded">Name</code>, <code class="text-xs p-1 bg-black/20 rounded">User Id</code>, and <code class="text-xs p-1 bg-black/20 rounded">ApplicationUserID</code> from their <code class="text-xs p-1 bg-black/20 rounded">Email</code>.</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong class="font-medium text-white">Process Gatekeeper File:</strong> The <strong class="text-white">Gatekeeper Extract</strong> is the main file. The tool loops through it row by row. For each user's email:
+                        <ul class="list-disc list-inside pl-4 mt-1">
+                            <li>It checks if the email matches the (optional) <strong>Email Filter</strong>.</li>
+                            <li>It combines the "Manual" and "Automated" distributor assignments into a single list.</li>
+                            <li>It finds the user's info (Name, User Id, etc.) from the <strong>Salesforce Map</strong>.</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong class="font-medium text-white">Assemble & Generate Output:</strong> For each distributor ID in a user's combined list, the tool:
+                        <ul class="list-disc list-inside pl-4 mt-1">
+                            <li>Finds the matching <code class="text-xs p-1 bg-black/20 rounded">DistributorName</code> from the <strong>Distributor Map</strong>.</li>
+                            <li>Assembles one complete row (e.g., "John Doe can buy for...") with all the mapped data.</li>
+                            <li>Bundles all the new rows into the "Delegated Accounts Import.csv" file and triggers a download.</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+            
+            <h3 class="text-lg font-semibold text-white mt-6 mb-3">Visual Data Flow</h3>
+            <p class="text-sm mb-4">The diagram below shows how data from each file is processed and mapped to create the final output.</p>
+            
+            <!-- 
+                This container holds the text-based diagram.
+                We use the existing 'code-block' style for a nice, formatted look.
+            -->
+            <pre class="code-block" id="text-diagram">
+========================================
+STEP 1: CREATE LOOKUP MAPS (In Memory)
+========================================
+
+  [File 1: Distributor Lookup CSV]
+     (Cols: MasterDistID, DistributorName)
+                   |
+                   v
+     { Distributor Map }
+     (Key: MasterDistID -> Value: DistributorName)
+
+
+  [File 2: Salesforce User Details CSV]
+     (Cols: Email, Id, Name, Contact.Gatekeeper_Contact_Id__c)
+                   |
+                   v
+     { Salesforce Map }
+     (Key: Email -> Value: {Name, Id, ...})
+
+
+========================================
+STEP 2: PROCESS MAIN FILE (Row by Row)
+========================================
+
+  [File 3: Gatekeeper Extract CSV]
+     (Cols: Email, Manual..., Automated...)
+                   |
+                   v
+  (Loop Each Row in Gatekeeper File)
+                   |
+   1. Get Email & Combine Assignments
+   2. Get UserInfo --> { Salesforce Map }
+   3. Get Dist. IDs --> [ "98", "498", ... ]
+                   |
+    (Loop Through Each DistributorID)
+                   |
+     4. Get Dist. Name --> { Distributor Map }
+
+
+========================================
+STEP 3: ASSEMBLE & GENERATE OUTPUT
+========================================
+
+  (From Salesforce Map) ---+
+  (From Distributor Map) --+--> [ Assemble Final Row ]
+  (From Gatekeeper Loop) --+
+                               |
+                               v
+  [ "Delegated Accounts Import.csv" ]
+    - Name: "John Doe can buy for..."
+    - User Id: "005..."
+    - VIP ID: "MASTERDIST:98"
+    - AccessBuyFor: "TRUE"
+    - ApplicationUserID: "12345"
+</pre>
+        </div>
+
+    </div> <!-- End of content wrapper -->
+
+    <script type="text/javascript">
+    window.addEventListener('load', () => {
+
+        // --- Mermaid.js initialization removed ---
+
+        // --- Polling function to wait for PapaParse ---
+        
+        /**
+         * Checks if PapaParse is loaded, then initializes the app.
+         * Retries for 5 seconds before showing an error.
+         * @param {number} [retries=0] - The current retry count.
+         */
+        function checkPapaParse(retries = 0) {
+            // Check if the global Papa object is available
+            if (typeof Papa !== 'undefined') {
+                // PapaParse is loaded, initialize the application
+                initializeApp();
+            } else if (retries < 50) { // 50 * 100ms = 5 seconds
+                // Not loaded yet, try again in 100ms
+                setTimeout(() => checkPapaParse(retries + 1), 100);
+            } else {
+                // Failed to load after 5 seconds
+                const statusMessageEl = document.getElementById('status-message');
+                if (statusMessageEl) {
+                    statusMessageEl.textContent = 'Failed to load parsing library. Please check your internet connection and refresh the page.';
+                    statusMessageEl.classList.remove('hidden', 'bg-green-500/30', 'text-green-100');
+                    statusMessageEl.classList.add('bg-red-500/30', 'text-red-100');
+                } else {
+                    console.error('Failed to load parsing library and status element not found.');
+                }
+            }
+        }
+
+        /**
+         * Contains the main application logic.
+         * This function is only called *after* PapaParse is confirmed to be loaded.
+         */
+        function initializeApp() {
+            // --- STATE VARIABLES ---
+            // These hold the parsed data from the CSV files.
+            
+            // FUTURE API: These variables would be replaced by data fetched from APIs.
+            // For example:
+            // let distributorData = await fetch('/api/distributors');
+            // let salesforceData = await fetch('/api/salesforce/users?emails=...');
+            // let gatekeeperData = await fetch('/api/gatekeeper/extract');
+            
+            let distributorData = null;
+            let salesforceData = null;
+            let gatekeeperData = null;
+            let filesParsing = 0; // Counter to track files currently being parsed
+
+            // --- COMMON ELEMENTS ---
+
+            const generateButton = document.getElementById('generate-csv');
+            const generateButtonText = document.getElementById('generate-button-text');
+            const generateButtonIcon = document.getElementById('generate-button-icon');
+            generateButton.defaultIconHTML = generateButtonIcon.innerHTML; // Store default icon
+
+            const statusMessageEl = document.getElementById('status-message');
+            const emailFilterEl = document.getElementById('email-filter');
+            const clearAllButton = document.getElementById('clear-all');
+
+            // --- UI HELPER FUNCTIONS ---
+
+            /**
+             * Shows a status or error message.
+             * @param {string} message - The message to display.
+             * @param {('success' | 'error')} type - The type of message.
+             */
+            function showMessage(message, type = 'error') {
+                statusMessageEl.textContent = message;
+                statusMessageEl.classList.remove('hidden', 'bg-green-500/30', 'text-green-100', 'bg-red-500/30', 'text-red-100');
+                
+                if (type === 'success') {
+                    statusMessageEl.classList.add('bg-green-500/30', 'text-green-100');
+                } else {
+                    statusMessageEl.classList.add('bg-red-500/30', 'text-red-100');
+                }
+            }
+
+            /**
+             * Hides the status message box.
+             */
+            function hideMessage() {
+                statusMessageEl.classList.add('hidden');
+            }
+
+            /**
+             * Sets the loading state for the generate button.
+             * @param {boolean} isLoading - Whether to show loading state.
+             * @param {string} [text='Generate and Download CSV'] - Text to show.
+             */
+            const setLoadingState = (isLoading, text = 'Generate and Download CSV') => {
+                const isParsing = filesParsing > 0;
+                generateButton.disabled = isLoading || isParsing;
+                
+                if (isLoading) {
+                    generateButtonText.textContent = text;
+                    generateButtonIcon.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+                } else if (isParsing) {
+                    generateButtonText.textContent = 'Parsing file...';
+                    generateButtonIcon.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+                } else {
+                    generateButtonText.textContent = text;
+                    generateButtonIcon.innerHTML = generateButton.defaultIconHTML;
+                }
+            };
+
+            /**
+             * Updates the file count/status text for a dropzone.
+             * @param {HTMLElement} fileCountEl - The text element to show file count.
+             * @param {File | null} file - The file, or null to clear.
+             * @param {('parsing' | 'success' | 'error' | 'clear')} status - The new status.
+             */
+            const updateFileStatus = (fileCountEl, file, status = 'clear') => {
+                const nameEl = fileCountEl.querySelector('.file-name');
+                const statusEl = fileCountEl.querySelector('.file-status');
+
+                if (!nameEl || !statusEl) return;
+
+                // Clear previous status colors
+                statusEl.classList.remove('file-status-success', 'file-status-error', 'file-status-parsing');
+                nameEl.classList.remove('font-medium', 'text-green-300');
+
+                switch (status) {
+                    case 'parsing':
+                        nameEl.textContent = file ? file.name : 'Parsing...';
+                        statusEl.textContent = '(Parsing...)';
+                        statusEl.classList.add('file-status-parsing');
+                        break;
+                    case 'success':
+                        nameEl.textContent = file.name;
+                        nameEl.classList.add('font-medium', 'text-green-300');
+                        statusEl.textContent = '✓ (Ready)';
+                        statusEl.classList.add('file-status-success');
+                        break;
+                    case 'error':
+                        nameEl.textContent = file ? file.name : 'Error';
+                        statusEl.textContent = '✗ (Error)';
+                        statusEl.classList.add('file-status-error');
+                        break;
+                    case 'clear':
+                    default:
+                        nameEl.textContent = 'No file selected';
+                        statusEl.textContent = '';
+                        break;
+                }
+            };
+
+            // --- CORE LOGIC ---
+
+            /**
+             * Sets up a dropzone for file uploads.
+             * @param {HTMLElement} dropzoneEl - The dropzone container.
+             * @param {HTMLInputElement} inputEl - The file input element.
+             * @param {HTMLElement} fileCountEl - The text element to show file count.
+             * @param {function(File):void} onFileSelected - Callback when a file is selected.
+             */
+            const setupDropzone = (dropzoneEl, inputEl, fileCountEl, onFileSelected) => {
+                if (!dropzoneEl) {
+                    console.error("Failed to find dropzone element for:", inputEl.id);
+                    return; 
+                }
+
+                dropzoneEl.addEventListener('click', () => inputEl.click());
+                dropzoneEl.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzoneEl.classList.add('dropzone-active');
+                });
+                dropzoneEl.addEventListener('dragleave', () => dropzoneEl.classList.remove('dropzone-active'));
+                dropzoneEl.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropzoneEl.classList.remove('dropzone-active');
+                    if (e.dataTransfer.files.length > 0) {
+                        inputEl.files = e.dataTransfer.files;
+                        const file = inputEl.files[0];
+                        onFileSelected(file);
+                    }
+                });
+                inputEl.addEventListener('change', () => {
+                    const file = inputEl.files[0];
+                    if (file) {
+                        onFileSelected(file);
+                    }
+                });
+            };
+
+            /**
+             * Parses a CSV file using PapaParse.
+             * @param {File} file - The CSV file to parse.
+             * @param {HTMLElement} fileCountEl - The status element to update.
+             * @returns {Promise<Array<Object>>} A promise that resolves with the parsed data (array of objects).
+             */
+            const parseCSV = (file, fileCountEl) => {
+                filesParsing++;
+                setLoadingState(false, 'Generate and Download CSV'); // Update button to "Parsing..." state
+                updateFileStatus(fileCountEl, file, 'parsing');
+
+                return new Promise((resolve, reject) => {
+                    if (!file) {
+                        filesParsing--;
+                        setLoadingState(false, 'Generate and Download CSV');
+                        updateFileStatus(fileCountEl, null, 'error');
+                        reject(new Error("No file provided."));
+                        return;
+                    }
+
+                    if (typeof Papa === 'undefined') {
+                        filesParsing--;
+                        setLoadingState(false, 'Generate and Download CSV');
+                        updateFileStatus(fileCountEl, file, 'error');
+                        reject(new Error("Parsing library (PapaParse) is not loaded. Please refresh."));
+                        return;
+                    }
+                    
+                    Papa.parse(file, {
+                        header: true,
+                        skipEmptyLines: true,
+                        transformHeader: (header) => header.trim(), // Automatically trim spaces from headers
+                        complete: (results) => {
+                            filesParsing--;
+                            setLoadingState(false, 'Generate and Download CSV'); // Update button state (will re-enable if 0)
+                            if (results.errors.length > 0) {
+                                updateFileStatus(fileCountEl, file, 'error');
+                                reject(new Error(`Error parsing ${file.name}: ${results.errors[0].message}`));
+                            } else {
+                                updateFileStatus(fileCountEl, file, 'success');
+                                resolve(results.data);
+                            }
+                        },
+                        error: (err) => {
+                            filesParsing--;
+                            setLoadingState(false, 'Generate and Download CSV'); // Update button state
+                            updateFileStatus(fileCountEl, file, 'error');
+                            reject(new Error(`Failed to parse ${file.name}: ${err.message}`));
+                        }
+                    });
+                });
+            };
+
+            // --- Setup Dropzones ---
+
+            const distFileCountEl = document.getElementById('distributor-file-count');
+            const sfFileCountEl = document.getElementById('salesforce-file-count');
+            const gkFileCountEl = document.getElementById('gatekeeper-file-count');
+
+            setupDropzone(
+                document.getElementById('distributor-dropzone'),
+                document.getElementById('distributor-upload'),
+                distFileCountEl,
+                (file) => {
+                    distributorData = null; // Clear old data on new upload
+                    parseCSV(file, distFileCountEl).then(data => {
+                        distributorData = data;
+                        hideMessage();
+                    }).catch(err => showMessage(err.message))
+                }
+            );
+
+            setupDropzone(
+                document.getElementById('salesforce-dropzone'),
+                document.getElementById('salesforce-upload'),
+                sfFileCountEl,
+                (file) => {
+                    salesforceData = null; // Clear old data on new upload
+                    parseCSV(file, sfFileCountEl).then(data => {
+                        salesforceData = data;
+                        hideMessage();
+                    }).catch(err => showMessage(err.message))
+                }
+            );
+
+            setupDropzone(
+                document.getElementById('gatekeeper-dropzone'),
+                document.getElementById('gatekeeper-upload'),
+                gkFileCountEl,
+                (file) => {
+                    gatekeeperData = null; // Clear old data on new upload
+                    parseCSV(file, gkFileCountEl).then(data => {
+                        gatekeeperData = data;
+                        hideMessage();
+                    }).catch(err => showMessage(err.message))
+                }
+            );
+
+            // --- Main Generate Logic ---
+
+            generateButton.addEventListener('click', () => {
+                hideMessage();
+
+                // 1. Validate inputs
+                if (!distributorData) {
+                    showMessage('Please upload the Distributor Lookup CSV.');
+                    return;
+                }
+                if (!salesforceData) {
+                    showMessage('Please upload the Salesforce User Details CSV.');
+                    return;
+                }
+                if (!gatekeeperData) {
+                    showMessage('Please upload the Gatekeeper Extract CSV.');
+                    return;
+                }
+
+                setLoadingState(true, 'Processing data...');
+
+                // Get and process the email filter list
+                const filterEmailText = emailFilterEl.value.trim();
+                let emailFilterSet = null;
+                if (filterEmailText.length > 0) {
+                    emailFilterSet = new Set(
+                        filterEmailText.split(/[\n,]+/) // Split by newline or comma
+                            .map(email => email.trim().toLowerCase())
+                            .filter(email => email.length > 0)
+                    );
+                    console.log(`Filtering for ${emailFilterSet.size} specific emails.`);
+                }
+
+                // Use a timeout to allow the UI to update to the loading state
+                setTimeout(() => {
+                    try {
+                        // 2. Create lookup maps for efficiency
+                        
+                        // FUTURE API: This whole block would be replaced by an API call.
+                        // const distributorMap = await fetch('/api/distributors/map');
+                        // This map is built in-memory from the Distributor CSV.
+                        const distributorMap = {};
+                        for (const row of distributorData) {
+                            const id = row.MasterDistID;
+                            const name = row.DistributorName;
+                            if (id && name) {
+                                distributorMap[id.trim()] = name.trim();
+                            }
+                        }
+                        console.log(`Distributor Map created with ${Object.keys(distributorMap).length} entries.`);
+                        
+                        
+                        // FUTURE API: This block would be replaced by an API call.
+                        // You would first get all emails from gatekeeperData, then send them
+                        // to a Salesforce API endpoint to get back this map.
+                        // const emails = gatekeeperData.map(row => row.Email);
+                        // const salesforceMap = await fetch('/api/salesforce/users', { method: 'POST', body: JSON.stringify(emails) });
+                        // This map is built in-memory from the Salesforce User CSV.
+                        const salesforceMap = {};
+                        for (const row of salesforceData) {
+                            const email = row.Email || row['Contact.Email'] || row['Contact. Email'];
+                            const userId = row.Id;
+                            const appUserId = row['Contact.Gatekeeper_Contact_Id__c'];
+                            const name = row.Name;
+
+                            if (email && userId && appUserId && name) {
+                                salesforceMap[email.trim().toLowerCase()] = {
+                                    userId: userId.trim(),
+                                    appUserId: appUserId.trim(),
+                                    name: name.trim()
+                                };
+                            }
+                        }
+                        console.log(`Salesforce Map created with ${Object.keys(salesforceMap).length} entries.`);
+                        
+
+                        // 3. Process the Gatekeeper Extract and build the output
+                        
+                        // FUTURE API: 'gatekeeperData' would already be a JSON array from an API call.
+                        // The filter logic would still be useful, or it could be passed as an API query param.
+                        // const gatekeeperData = await fetch(`/api/gatekeeper/extract?emails=${[...emailFilterSet]}`);
+                        
+                        const outputRows = [
+                            ['Name', 'User Id', 'VIP ID', 'AccessBuyFor', 'ApplicationUserID'] // Header row
+                        ];
+
+                        let rowsProcessed = 0;
+                        let rowsGenerated = 0;
+                        let userMatchFailures = 0;
+                        let distributorMatchFailures = 0;
+                        let usersWithNoAssignments = 0;
+
+                        // This is the main processing loop
+                        for (const gkRow of gatekeeperData) {
+                            rowsProcessed++;
+                            const email = gkRow.Email;
+                            if (!email) continue; 
+
+                            const normalizedEmail = email.trim().toLowerCase();
+
+                            // Apply email filter if it exists
+                            if (emailFilterSet && !emailFilterSet.has(normalizedEmail)) {
+                                continue;
+                            }
+
+                            // Find the user in the Salesforce map
+                            const userInfo = salesforceMap[normalizedEmail];
+                            if (!userInfo) {
+                                userMatchFailures++;
+                                console.warn(`No Salesforce user found for email: ${normalizedEmail}`);
+                                continue; 
+                            }
+
+                            // Combine manual and automated assignments
+                            const manual = gkRow['Manual Distributor Assignments'] || '';
+                            const automated = gkRow['Automated Distributor Assignments'] || '';
+                            const combinedAssignments = `${manual},${automated}`;
+
+                            // Get unique, non-empty distributor IDs
+                            const uniqueDistIds = [
+                                ...new Set(
+                                    combinedAssignments.split(',')
+                                        .map(id => id.trim())
+                                        .filter(id => id && id.length > 0) 
+                                )
+                            ];
+
+                            if (uniqueDistIds.length === 0) {
+                                usersWithNoAssignments++;
+                                continue; 
+                            }
+
+                            // Create a row for each unique distributor assignment
+                            for (const distId of uniqueDistIds) {
+                                // Find the distributor name in the distributor map
+                                const distName = distributorMap[distId];
+                                
+                                if (distName) {
+                                    // Assemble the final row
+                                    const outputName = `${userInfo.name} can buy for ${distName}`;
+                                    const outputVipId = `MASTERDIST:${distId}`;
+
+                                    outputRows.push([
+                                        outputName,
+                                        userInfo.userId,
+                                        outputVipId,
+                                        'TRUE',
+                                        userInfo.appUserId
+                                    ]);
+                                    rowsGenerated++;
+                                } else {
+                                    distributorMatchFailures++;
+                                    console.warn(`No Distributor name found for ID: "${distId}" (from user ${normalizedEmail})`);
+                                }
+                            }
+                        }
+                        
+                        // 4. Convert to CSV and trigger download
+                        if (outputRows.length <= 1) {
+                            // Handle no data found
+                            let debugMessage = `No matching data. Processed ${rowsProcessed} Gatekeeper rows. User match failures: ${userMatchFailures}. Distributor ID match failures: ${distributorMatchFailures}. Users with no assignments: ${usersWithNoAssignments}.`;
+                            if (emailFilterSet) {
+                                debugMessage += ` (Filtered by ${emailFilterSet.size} emails).`;
+                            }
+                            console.error(debugMessage);
+                            showMessage(`No matching data. Check console (F12) for details. (User fails: ${userMatchFailures}, Dist. fails: ${distributorMatchFailures})${emailFilterSet ? ' (Filter Active)' : ''}`);
+                            setLoadingState(false, 'Generate and Download CSV');
+                            return;
+                        }
+
+                        // Update loading state before unparse
+                        setLoadingState(true, 'Preparing download...');
+                        
+                        // FUTURE API: Instead of downloading a CSV, you would take 'outputRows'
+                        // (or a JSON version of it) and send it to the Salesforce Bulk API
+                        // to create or update the Delegated Account records directly.
+                        // await fetch('/api/salesforce/delegated-accounts', { method: 'POST', body: JSON.stringify(outputRows) });
+
+                        // Small timeout to let UI update before potentially blocking CSV conversion
+                        setTimeout(() => {
+                            const csvContent = Papa.unparse(outputRows);
+                            
+                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                            const link = document.createElement('a');
+                            const url = URL.createObjectURL(blob);
+                            
+                            link.setAttribute('href', url);
+                            link.setAttribute('download', 'Delegated Accounts Import.csv');
+                            link.style.visibility = 'hidden';
+                            
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+
+                            showMessage(`Success! Processed ${rowsProcessed} Gatekeeper rows and generated ${rowsGenerated} import rows.${emailFilterSet ? ' (Filter Active)' : ''}`, 'success');
+                            setLoadingState(false, 'Generate and Download CSV');
+                        }, 50); // 50ms timeout for UI to update
+
+                    } catch (error) {
+                        console.error('Error during CSV generation:', error);
+                        showMessage(`An error occurred: ${error.message}`);
+                        setLoadingState(false, 'Generate and Download CSV');
+                    }
+                }, 50); // 50ms timeout
+            });
+
+            // --- Clear All Logic ---
+            clearAllButton.addEventListener('click', () => {
+                // Clear data variables
+                distributorData = null;
+                salesforceData = null;
+                gatekeeperData = null;
+
+                // Clear file input values
+                document.getElementById('distributor-upload').value = null;
+                document.getElementById('salesforce-upload').value = null;
+                document.getElementById('gatekeeper-upload').value = null;
+
+                // Reset dropzone text
+                updateFileStatus(distFileCountEl, null, 'clear');
+                updateFileStatus(sfFileCountEl, null, 'clear');
+                // Fix typo from previous version: updateFileFileStatus -> updateFileStatus
+                updateFileStatus(gkFileCountEl, null, 'clear');
+
+                // Clear email filter
+                emailFilterEl.value = '';
+
+                // Hide status message
+                hideMessage();
+
+                // Reset generate button
+                setLoadingState(false, 'Generate and Download CSV');
+
+                console.log('All inputs cleared.');
+            });
+        
+        } // End of initializeApp()
+
+        // --- Start the application ---
+        // This will wait until PapaParse is safely loaded.
+        checkPapaParse();
+
+    }); // Close window.load
+    </script>
+</body>
+</html>
