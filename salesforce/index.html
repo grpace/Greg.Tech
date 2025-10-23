@@ -138,7 +138,7 @@
             <p class="text-sm text-slate-200 mb-2">This file provides the user information based on their email address.</p>
             
             <label class="block text-sm font-medium text-slate-100 mb-1">Upload Salesforce User Details CSV</label>
-            <p class="text-xs text-slate-300 mb-2">Required columns: `Email` (or `Contact.Email`), `Id`, `Name`, `Contact.Gatekeeper_Contact_Id__c`</p>
+            <p class="text-xs text-slate-300 mb-2">Required columns: `Email` (or `Contact.Email`), `Id`, `Name`, `Gatekeeper_Contact_Id__c` (or `Contact.Gatekeeper_Contact_Id__c`)</p>
             <div id="salesforce-dropzone" class="dropzone">
                 <input type="file" id="salesforce-upload" class="hidden" accept=".csv">
                 <div id="salesforce-dropzone-text">
@@ -655,7 +655,7 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                         for (const row of salesforceData) {
                             const email = row.Email || row['Contact.Email'] || row['Contact. Email'];
                             const userId = row.Id;
-                            const appUserId = row['Contact.Gatekeeper_Contact_Id__c'];
+                            const appUserId = row['Gatekeeper_Contact_Id__c'] || row['Contact.Gatekeeper_Contact_Id__c'];
                             const name = row.Name;
 
                             if (email && userId && appUserId && name) {
