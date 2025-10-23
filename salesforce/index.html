@@ -8,8 +8,23 @@
     <!-- Load PapaParse for CSV parsing (using jsdelivr CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     
+    <!-- Prevent FOUC -->
+    <style>
+        .content-hidden {
+            visibility: hidden;
+        }
+        .content-visible {
+            visibility: visible;
+            animation: fadeIn 0.2s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+    
     <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" onload="document.body.classList.replace('content-hidden', 'content-visible')"></script>
     
     <!-- Load Inter font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -86,7 +101,7 @@
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center min-h-screen py-10 px-4">
+<body class="content-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center min-h-screen py-10 px-4">
 
     <div class="w-full max-w-3xl space-y-6">
 
