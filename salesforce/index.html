@@ -365,13 +365,26 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
              * @param {('success' | 'error')} type - The type of message.
              */
             function showMessage(message, type = 'error') {
-                statusMessageEl.textContent = message;
-                statusMessageEl.classList.remove('hidden', 'bg-green-500/30', 'text-green-100', 'bg-red-500/30', 'text-red-100');
+                // Convert newlines to <br> tags for HTML display
+                const htmlMessage = message.replace(/\n/g, '<br>');
+                statusMessageEl.innerHTML = htmlMessage;
                 
-                if (type === 'success') {
-                    statusMessageEl.classList.add('bg-green-500/30', 'text-green-100');
-                } else {
-                    statusMessageEl.classList.add('bg-red-500/30', 'text-red-100');
+                statusMessageEl.classList.remove(
+                    'hidden',
+                    'bg-green-500/30', 'text-green-100',
+                    'bg-yellow-500/30', 'text-yellow-100',
+                    'bg-red-500/30', 'text-red-100'
+                );
+                
+                switch (type) {
+                    case 'success':
+                        statusMessageEl.classList.add('bg-green-500/30', 'text-green-100');
+                        break;
+                    case 'warning':
+                        statusMessageEl.classList.add('bg-yellow-500/30', 'text-yellow-100');
+                        break;
+                    default: // error
+                        statusMessageEl.classList.add('bg-red-500/30', 'text-red-100');
                 }
             }
 
@@ -666,86 +679,195 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                             ['Name', 'User Id', 'VIP ID', 'AccessBuyFor', 'ApplicationUserID'] // Header row
                         ];
 
+                        // Tracking structures for detailed error reporting
+                        const errors = {
+                            userNotFound: new Map(), // email -> count
+                            distributorNotFound: new Map(), // distId -> {count, emails: Set}
+                            invalidEmails: new Set(),
+                            noAssignments: new Set(),
+                            malformedRows: []
+                        };
+
                         let rowsProcessed = 0;
                         let rowsGenerated = 0;
-                        let userMatchFailures = 0;
-                        let distributorMatchFailures = 0;
-                        let usersWithNoAssignments = 0;
+                        let rowsSkipped = 0;
 
                         // This is the main processing loop
                         for (const gkRow of gatekeeperData) {
                             rowsProcessed++;
-                            const email = gkRow.Email;
-                            if (!email) continue; 
-
-                            const normalizedEmail = email.trim().toLowerCase();
-
-                            // Apply email filter if it exists
-                            if (emailFilterSet && !emailFilterSet.has(normalizedEmail)) {
-                                continue;
-                            }
-
-                            // Find the user in the Salesforce map
-                            const userInfo = salesforceMap[normalizedEmail];
-                            if (!userInfo) {
-                                userMatchFailures++;
-                                console.warn(`No Salesforce user found for email: ${normalizedEmail}`);
-                                continue; 
-                            }
-
-                            // Combine manual and automated assignments
-                            const manual = gkRow['Manual Distributor Assignments'] || '';
-                            const automated = gkRow['Automated Distributor Assignments'] || '';
-                            const combinedAssignments = `${manual},${automated}`;
-
-                            // Get unique, non-empty distributor IDs
-                            const uniqueDistIds = [
-                                ...new Set(
-                                    combinedAssignments.split(',')
-                                        .map(id => id.trim())
-                                        .filter(id => id && id.length > 0) 
-                                )
-                            ];
-
-                            if (uniqueDistIds.length === 0) {
-                                usersWithNoAssignments++;
-                                continue; 
-                            }
-
-                            // Create a row for each unique distributor assignment
-                            for (const distId of uniqueDistIds) {
-                                // Find the distributor name in the distributor map
-                                const distName = distributorMap[distId];
-                                
-                                if (distName) {
-                                    // Assemble the final row
-                                    const outputName = `${userInfo.name} can buy for ${distName}`;
-                                    const outputVipId = `MASTERDIST:${distId}`;
-
-                                    outputRows.push([
-                                        outputName,
-                                        userInfo.userId,
-                                        outputVipId,
-                                        'TRUE',
-                                        userInfo.appUserId
-                                    ]);
-                                    rowsGenerated++;
-                                } else {
-                                    distributorMatchFailures++;
-                                    console.warn(`No Distributor name found for ID: "${distId}" (from user ${normalizedEmail})`);
+                            try {
+                                const email = gkRow.Email;
+                                if (!email) {
+                                    errors.malformedRows.push({
+                                        rowNumber: rowsProcessed,
+                                        reason: 'Missing email',
+                                        data: JSON.stringify(gkRow)
+                                    });
+                                    rowsSkipped++;
+                                    continue;
                                 }
+
+                                const normalizedEmail = email.trim().toLowerCase();
+                                if (!normalizedEmail.includes('@')) {
+                                    errors.invalidEmails.add(normalizedEmail);
+                                    rowsSkipped++;
+                                    continue;
+                                }
+
+                                // Apply email filter if it exists
+                                if (emailFilterSet && !emailFilterSet.has(normalizedEmail)) {
+                                    continue; // Don't count filtered emails as errors
+                                }
+
+                                // Find the user in the Salesforce map
+                                const userInfo = salesforceMap[normalizedEmail];
+                                if (!userInfo) {
+                                    errors.userNotFound.set(
+                                        normalizedEmail, 
+                                        (errors.userNotFound.get(normalizedEmail) || 0) + 1
+                                    );
+                                    rowsSkipped++;
+                                    continue;
+                                }
+
+                                // Combine manual and automated assignments
+                                const manual = gkRow['Manual Distributor Assignments'] || '';
+                                const automated = gkRow['Automated Distributor Assignments'] || '';
+                                const combinedAssignments = `${manual},${automated}`;
+
+                                // Get unique, non-empty distributor IDs
+                                const uniqueDistIds = [
+                                    ...new Set(
+                                        combinedAssignments.split(',')
+                                            .map(id => id.trim())
+                                            .filter(id => id && id.length > 0)
+                                    )
+                                ];
+
+                                if (uniqueDistIds.length === 0) {
+                                    errors.noAssignments.add(normalizedEmail);
+                                    rowsSkipped++;
+                                    continue;
+                                }
+
+                                let hasValidDistributor = false;
+                                // Create a row for each unique distributor assignment
+                                for (const distId of uniqueDistIds) {
+                                    // Find the distributor name in the distributor map
+                                    const distName = distributorMap[distId];
+                                    
+                                    if (distName) {
+                                        hasValidDistributor = true;
+                                        // Assemble the final row
+                                        const outputName = `${userInfo.name} can buy for ${distName}`;
+                                        const outputVipId = `MASTERDIST:${distId}`;
+
+                                        outputRows.push([
+                                            outputName,
+                                            userInfo.userId,
+                                            outputVipId,
+                                            'TRUE',
+                                            userInfo.appUserId
+                                        ]);
+                                        rowsGenerated++;
+                                    } else {
+                                        // Track distributor errors with affected emails
+                                        if (!errors.distributorNotFound.has(distId)) {
+                                            errors.distributorNotFound.set(distId, {
+                                                count: 0,
+                                                emails: new Set()
+                                            });
+                                        }
+                                        const distError = errors.distributorNotFound.get(distId);
+                                        distError.count++;
+                                        distError.emails.add(normalizedEmail);
+                                    }
+                                }
+                                
+                                // If none of the distributors were valid, count as a skipped row
+                                if (!hasValidDistributor) {
+                                    rowsSkipped++;
+                                }
+                            } catch (error) {
+                                console.error(`Error processing row ${rowsProcessed}:`, error);
+                                errors.malformedRows.push({
+                                    rowNumber: rowsProcessed,
+                                    reason: error.message,
+                                    data: JSON.stringify(gkRow)
+                                });
+                                rowsSkipped++;
                             }
                         }
                         
-                        // 4. Convert to CSV and trigger download
+                        // 4. Generate detailed error report
+                        let errorReport = [];
+                        let errorSummary = [];
+                        
+                        if (errors.invalidEmails.size > 0) {
+                            errorSummary.push(`Invalid emails: ${errors.invalidEmails.size}`);
+                            errorReport.push(
+                                '❌ Invalid Email Addresses:',
+                                ...Array.from(errors.invalidEmails).map(email => `  • ${email}`)
+                            );
+                        }
+
+                        if (errors.userNotFound.size > 0) {
+                            errorSummary.push(`Users not found: ${errors.userNotFound.size}`);
+                            errorReport.push(
+                                '❌ Users Not Found in Salesforce:',
+                                ...Array.from(errors.userNotFound.entries())
+                                    .map(([email, count]) => `  • ${email}${count > 1 ? ` (${count} occurrences)` : ''}`)
+                            );
+                        }
+
+                        if (errors.distributorNotFound.size > 0) {
+                            const totalMissing = Array.from(errors.distributorNotFound.values())
+                                .reduce((sum, {count}) => sum + count, 0);
+                            errorSummary.push(`Invalid distributor IDs: ${errors.distributorNotFound.size} (${totalMissing} total)`);
+                            errorReport.push(
+                                '❌ Distributor IDs Not Found:',
+                                ...Array.from(errors.distributorNotFound.entries())
+                                    .map(([distId, {count, emails}]) => 
+                                        `  • ID "${distId}" (${count} occurrences, affecting ${emails.size} users)` +
+                                        `\n    Affected users: ${Array.from(emails).join(', ')}`)
+                            );
+                        }
+
+                        if (errors.noAssignments.size > 0) {
+                            errorSummary.push(`Users with no assignments: ${errors.noAssignments.size}`);
+                            errorReport.push(
+                                '⚠️ Users With No Distributor Assignments:',
+                                ...Array.from(errors.noAssignments).map(email => `  • ${email}`)
+                            );
+                        }
+
+                        if (errors.malformedRows.length > 0) {
+                            errorSummary.push(`Malformed rows: ${errors.malformedRows.length}`);
+                            errorReport.push(
+                                '❌ Malformed Data Rows:',
+                                ...errors.malformedRows.map(({rowNumber, reason, data}) => 
+                                    `  • Row ${rowNumber}: ${reason}\n    Data: ${data}`)
+                            );
+                        }
+
+                        // 5. Convert to CSV and trigger download
                         if (outputRows.length <= 1) {
                             // Handle no data found
-                            let debugMessage = `No matching data. Processed ${rowsProcessed} Gatekeeper rows. User match failures: ${userMatchFailures}. Distributor ID match failures: ${distributorMatchFailures}. Users with no assignments: ${usersWithNoAssignments}.`;
-                            if (emailFilterSet) {
-                                debugMessage += ` (Filtered by ${emailFilterSet.size} emails).`;
-                            }
-                            console.error(debugMessage);
-                            showMessage(`No matching data. Check console (F12) for details. (User fails: ${userMatchFailures}, Dist. fails: ${distributorMatchFailures})${emailFilterSet ? ' (Filter Active)' : ''}`);
+                            const errorDetails = errorSummary.length > 0 
+                                ? `\n\nErrors encountered:\n${errorSummary.join('\n')}`
+                                : '';
+                            
+                            console.error(
+                                `No matching data. Processed ${rowsProcessed} rows, skipped ${rowsSkipped}.` +
+                                `${emailFilterSet ? ` (Filtered by ${emailFilterSet.size} emails)` : ''}` +
+                                `\n\nDetailed Error Report:\n${errorReport.join('\n')}`
+                            );
+                            
+                            showMessage(
+                                `No valid data generated. Processed ${rowsProcessed} rows, ` +
+                                `${rowsSkipped} skipped.${errorDetails}` +
+                                `${emailFilterSet ? `\nNote: Email filter active (${emailFilterSet.size} emails)` : ''}`
+                            );
                             setLoadingState(false, 'Generate and Download CSV');
                             return;
                         }
@@ -774,7 +896,23 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                             link.click();
                             document.body.removeChild(link);
 
-                            showMessage(`Success! Processed ${rowsProcessed} Gatekeeper rows and generated ${rowsGenerated} import rows.${emailFilterSet ? ' (Filter Active)' : ''}`, 'success');
+                            // Show success message with any warnings
+                            const hasWarnings = errorSummary.length > 0;
+                            const successMessage = 
+                                `Success! Generated ${rowsGenerated} import rows from ${rowsProcessed} source rows.` +
+                                `${rowsSkipped > 0 ? `\n${rowsSkipped} rows were skipped.` : ''}` +
+                                `${hasWarnings ? `\n\nWarnings:\n${errorSummary.join('\n')}` : ''}` +
+                                `${emailFilterSet ? '\nNote: Email filter is active.' : ''}`;
+                            
+                            // Log detailed report to console
+                            if (hasWarnings) {
+                                console.warn(
+                                    'Import completed with warnings:\n' +
+                                    errorReport.join('\n')
+                                );
+                            }
+                            
+                            showMessage(successMessage, hasWarnings ? 'warning' : 'success');
                             setLoadingState(false, 'Generate and Download CSV');
                         }, 50); // 50ms timeout for UI to update
 
