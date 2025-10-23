@@ -765,11 +765,8 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                         
 
                         // Validate Gatekeeper data
-                        validateColumns(gatekeeperData, [
-                            'Email',
-                            'Manual Distributor Assignments',
-                            'Automated Distributor Assignments'
-                        ], 'Gatekeeper Extract CSV');
+                        // For Gatekeeper data, only Email is required, assignments can be null/missing
+                        validateColumns(gatekeeperData, ['Email'], 'Gatekeeper Extract CSV');
                             // For Gatekeeper data, only Email is required, assignments can be null/missing
                         validateColumns(gatekeeperData, ['Email'], 'Gatekeeper Extract CSV');
                         // 3. Process the Gatekeeper Extract and build the output
