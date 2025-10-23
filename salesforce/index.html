@@ -631,9 +631,34 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                     try {
                         // 2. Create lookup maps for efficiency
                         
-                        // FUTURE API: This whole block would be replaced by an API call.
-                        // const distributorMap = await fetch('/api/distributors/map');
-                        // This map is built in-memory from the Distributor CSV.
+                        // Validate required columns in CSV files
+                        const validateColumns = (data, requiredColumns, fileName) => {
+                            if (!data || data.length === 0) {
+                                throw new Error(`${fileName} appears to be empty`);
+                            }
+                            const headers = Object.keys(data[0]);
+                            const missing = requiredColumns.filter(col => {
+                                if (Array.isArray(col)) {
+                                    // If col is an array, check if at least one of the alternatives exists
+                                    return !col.some(alt => headers.includes(alt));
+                                }
+                                return !headers.includes(col);
+                            });
+                            if (missing.length > 0) {
+                                const missingCols = missing.map(col => {
+                                    if (Array.isArray(col)) {
+                                        return `one of [${col.join(' or ')}]`;
+                                    }
+                                    return col;
+                                }).join(', ');
+                                throw new Error(`${fileName} is missing required columns: ${missingCols}`);
+                            }
+                        };
+
+                        // Validate distributor data
+                        validateColumns(distributorData, ['MasterDistID', 'DistributorName'], 'Distributor Lookup CSV');
+                        
+                        // Build distributor map
                         const distributorMap = {};
                         for (const row of distributorData) {
                             const id = row.MasterDistID;
@@ -642,39 +667,79 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                                 distributorMap[id.trim()] = name.trim();
                             }
                         }
+                        
+                        if (Object.keys(distributorMap).length === 0) {
+                            throw new Error('No valid distributor mappings found in the Distributor Lookup CSV');
+                        }
                         console.log(`Distributor Map created with ${Object.keys(distributorMap).length} entries.`);
                         
                         
-                        // FUTURE API: This block would be replaced by an API call.
-                        // You would first get all emails from gatekeeperData, then send them
-                        // to a Salesforce API endpoint to get back this map.
-                        // const emails = gatekeeperData.map(row => row.Email);
-                        // const salesforceMap = await fetch('/api/salesforce/users', { method: 'POST', body: JSON.stringify(emails) });
-                        // This map is built in-memory from the Salesforce User CSV.
+                        // Validate Salesforce data
+                        validateColumns(salesforceData, [
+                            ['Email', 'Contact.Email', 'Contact. Email'],
+                            'Id',
+                            'Name',
+                            ['Gatekeeper_Contact_Id__c', 'Contact.Gatekeeper_Contact_Id__c']
+                        ], 'Salesforce User Details CSV');
+                        
+                        // Build Salesforce user map
                         const salesforceMap = {};
+                        let invalidRows = [];
+                        
                         for (const row of salesforceData) {
                             const email = row.Email || row['Contact.Email'] || row['Contact. Email'];
                             const userId = row.Id;
                             const appUserId = row['Gatekeeper_Contact_Id__c'] || row['Contact.Gatekeeper_Contact_Id__c'];
                             const name = row.Name;
 
-                            if (email && userId && appUserId && name) {
-                                salesforceMap[email.trim().toLowerCase()] = {
-                                    userId: userId.trim(),
-                                    appUserId: appUserId.trim(),
-                                    name: name.trim()
-                                };
+                            // Track rows with missing data
+                            if (!email || !userId || !appUserId || !name) {
+                                invalidRows.push({
+                                    row,
+                                    missing: [
+                                        !email ? 'Email' : null,
+                                        !userId ? 'Id' : null,
+                                        !appUserId ? 'Gatekeeper Contact Id' : null,
+                                        !name ? 'Name' : null
+                                    ].filter(Boolean)
+                                });
+                                continue;
                             }
+
+                            salesforceMap[email.trim().toLowerCase()] = {
+                                userId: userId.trim(),
+                                appUserId: appUserId.trim(),
+                                name: name.trim()
+                            };
                         }
-                        console.log(`Salesforce Map created with ${Object.keys(salesforceMap).length} entries.`);
+
+                        if (Object.keys(salesforceMap).length === 0) {
+                            let errorMsg = 'No valid user data found in the Salesforce User Details CSV';
+                            if (invalidRows.length > 0) {
+                                errorMsg += `\n\nFound ${invalidRows.length} invalid rows:`;
+                                invalidRows.slice(0, 3).forEach(({row, missing}) => {
+                                    errorMsg += `\n- Row missing: ${missing.join(', ')}`;
+                                    errorMsg += `\n  Data: ${JSON.stringify(row)}`;
+                                });
+                                if (invalidRows.length > 3) {
+                                    errorMsg += `\n...and ${invalidRows.length - 3} more invalid rows`;
+                                }
+                            }
+                            throw new Error(errorMsg);
+                        }
+                        
+                        console.log(`Salesforce Map created with ${Object.keys(salesforceMap).length} entries` + 
+                            (invalidRows.length > 0 ? ` (${invalidRows.length} invalid rows skipped)` : ''));
                         
 
+                        // Validate Gatekeeper data
+                        validateColumns(gatekeeperData, [
+                            'Email',
+                            'Manual Distributor Assignments',
+                            'Automated Distributor Assignments'
+                        ], 'Gatekeeper Extract CSV');
+                        
                         // 3. Process the Gatekeeper Extract and build the output
-                        
-                        // FUTURE API: 'gatekeeperData' would already be a JSON array from an API call.
-                        // The filter logic would still be useful, or it could be passed as an API query param.
-                        // const gatekeeperData = await fetch(`/api/gatekeeper/extract?emails=${[...emailFilterSet]}`);
-                        
                         const outputRows = [
                             ['Name', 'User Id', 'VIP ID', 'AccessBuyFor', 'ApplicationUserID'] // Header row
                         ];
