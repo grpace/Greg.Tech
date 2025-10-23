@@ -158,7 +158,7 @@
             <p class="text-sm text-slate-200 mb-2">This file contains the distributor assignments for each user.</p>
             
             <label class="block text-sm font-medium text-slate-100 mb-1">Upload Gatekeeper Extract CSV</label>
-                <p class="text-xs text-slate-300 mb-2">Required columns: `Email`, `Manual Distributor Assignments`, `Automated Distributor Assignments from Gatekeeper`</p>
+                <p class="text-xs text-slate-300 mb-2">Required columns: `Email`. Optional columns: `Manual Distributor Assignments`, `Automated Distributor Assignments from Gatekeeper` (empty values are treated as having no assignments)</p>
             <div id="gatekeeper-dropzone" class="dropzone">
                 <input type="file" id="gatekeeper-upload" class="hidden" accept=".csv">
                 <div id="gatekeeper-dropzone-text">
@@ -211,7 +211,7 @@ user3@example.com"></textarea>
                         </ul>
                         Also requires the Gatekeeper contact id: <code class="text-xs p-1 bg-black/20 rounded">Gatekeeper_Contact_Id__c</code> (or <code>Contact.Gatekeeper_Contact_Id__c</code>).
                     </li>
-                    <li><strong>Gatekeeper Extract CSV</strong> — required columns: <code class="text-xs p-1 bg-black/20 rounded">Email</code>, <code>Manual Distributor Assignments</code>, and <code>Automated Distributor Assignments from Gatekeeper</code>. The tool merges manual and automated lists, trims values, and deduplicates IDs.</li>
+                    <li><strong>Gatekeeper Extract CSV</strong> — required columns: <code class="text-xs p-1 bg-black/20 rounded">Email</code>. Optional columns: <code>Manual Distributor Assignments</code> and <code>Automated Distributor Assignments from Gatekeeper</code>. The tool merges any non-empty assignment lists, trims values, and deduplicates IDs. Missing or empty assignment columns are treated as having no assignments.</li>
                 </ul>
 
                 <p class="font-medium mt-2">Error handling & reporting</p>
@@ -770,11 +770,8 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                             'Manual Distributor Assignments',
                             'Automated Distributor Assignments'
                         ], 'Gatekeeper Extract CSV');
-                            validateColumns(gatekeeperData, [
-                                'Email',
-                                'Manual Distributor Assignments',
-                                'Automated Distributor Assignments from Gatekeeper'
-                            ], 'Gatekeeper Extract CSV');
+                            // For Gatekeeper data, only Email is required, assignments can be null/missing
+                        validateColumns(gatekeeperData, ['Email'], 'Gatekeeper Extract CSV');
                         // 3. Process the Gatekeeper Extract and build the output
                         const outputRows = [
                             ['Name', 'User Id', 'VIP ID', 'AccessBuyFor', 'ApplicationUserID'] // Header row
@@ -831,12 +828,14 @@ STEP 3: ASSEMBLE & GENERATE OUTPUT
                                     continue;
                                 }
 
-                                // Combine manual and automated assignments
+                                // Combine manual and automated assignments (both are optional)
                                 const manual = gkRow['Manual Distributor Assignments'] || '';
-                                    const automated = gkRow['Automated Distributor Assignments from Gatekeeper'] || '';
-                                const combinedAssignments = `${manual},${automated}`;
-
-                                // Get unique, non-empty distributor IDs
+                                const automated = gkRow['Automated Distributor Assignments from Gatekeeper'] || '';
+                                // Skip undefined/null values and only include if the column exists and has content
+                                const assignments = [];
+                                if (manual) assignments.push(manual);
+                                if (automated) assignments.push(automated);
+                                const combinedAssignments = assignments.join(',');                                // Get unique, non-empty distributor IDs
                                 const uniqueDistIds = [
                                     ...new Set(
                                         combinedAssignments.split(',')
