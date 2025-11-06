@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributor Brands Import Generator</title>
+    
+    <!-- Load PapaParse for CSV parsing (using jsdelivr CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    
+    <!-- Prevent FOUC -->
+    <style>
+        .content-hidden {
+            visibility: hidden;
+        }
+        .content-visible {
+            visibility: visible;
+            animation: fadeIn 0.2s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+    
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Mermaid.js script removed -->
+    
+    <style>
+        /* Use Inter font */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        /* Style for the glass panels */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 1rem; /* rounded-2xl */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Style for the file dropzone */
+        .dropzone {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        
+        .dropzone-active {
+            border-color: rgba(255, 255, 255, 0.8);
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Style for the code block */
+        pre.code-block {
+            background: rgba(0, 0, 0, 0.3);
+            color: #f1f5f9; /* slate-100 */
+            padding: 1rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            font-family: 'Courier New', Courier, monospace;
+            overflow-x: auto;
+            font-size: 0.875rem; /* text-sm */
+        }
+
+        /* Custom spinner animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Styles for file status indicators */
+        .file-status {
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+        .file-status-success {
+            color: #86efac; /* green-300 */
+        }
+        .file-status-error {
+            color: #fca5a5; /* red-300 */
+        }
+        .file-status-parsing {
+            color: #a5f3fc; /* cyan-200 */
+        }
+    </style>
+</head>
+<body class="content-hidden bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex flex-col items-center justify-center min-h-screen py-10 px-4">
+
+    <div class="w-full max-w-3xl space-y-6">
+
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <a href="index.html" class="inline-flex items-center text-sm text-slate-200 hover:text-white mb-4 transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Salesforce Data Tools
+            </a>
+            <h1 class="text-3xl font-bold text-white">Distributor Brands Import Generator</h1>
+            <p class="text-slate-200 mt-2">Upload your CSV files to generate the distributor brands import file.</p>
+        </div>
+
+        <!-- Section 1: Gate Keeper Distributor Brands Import -->
+        <div class="glass-panel p-6 w-full">
+            <h2 class="text-xl font-semibold text-white mb-3">1. Gate Keeper Distributor Brands Import</h2>
+            <p class="text-sm text-slate-200 mb-2">This table provides the columns `MasterDistID` and `ProductBrand` which we will use later.</p>
+            <pre class="code-block mb-4">SELECT * FROM MABI.dbo.DistributorBrands</pre>
+            
+            <label class="block text-sm font-medium text-slate-100 mb-1">Upload Gate Keeper Distributor Brands CSV</label>
+            <p class="text-xs text-slate-300 mb-2">Required columns: `MasterDistID`, `ProductBrand`</p>
+            <div id="gatekeeper-brands-dropzone" class="dropzone">
+                <input type="file" id="gatekeeper-brands-upload" class="hidden" accept=".csv">
+                <div id="gatekeeper-brands-dropzone-text">
+                    <svg class="mx-auto h-10 w-10 text-slate-200" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                    <p class="mt-2 text-sm text-slate-100"><span class="font-semibold text-white">Click to upload</span> or drag and drop</p>
+                    <p class="text-xs text-slate-300" id="gatekeeper-brands-file-count">
+                        <span class="file-name">No file selected</span>
+                        <span class="file-status"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Generate File -->
+        <div class="glass-panel p-6 w-full">
+            <h2 class="text-xl font-semibold text-white mb-3">2. Generate Import File</h2>
+            <p class="text-sm text-slate-200 mb-4">Click the button below to process the uploaded file and download the "Distributor Brands Import.csv".</p>
+            <button id="generate-csv" class="w-full bg-white/30 text-white font-bold py-3 px-4 rounded-lg hover:bg-white/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/80 transition-all duration-200 ease-in-out flex items-center justify-center disabled:bg-slate-400/50">
+                <svg id="generate-button-icon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span id="generate-button-text">Generate and Download CSV</span>
+            </button>
+            <button id="clear-all" class="w-full bg-transparent border border-white/30 text-white font-medium py-3 px-4 rounded-lg hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200 ease-in-out mt-3">
+                Clear All Inputs
+            </button>
+            <!-- Message Box for status/errors -->
+            <div id="status-message" class="hidden mt-4 p-4 rounded-lg text-sm text-center"></div>
+        </div>
+
+        <!-- Section 3: How It Works -->
+        <div class="glass-panel p-6 w-full text-slate-200">
+            <h2 class="text-xl font-semibold text-white mb-3">How This Tool Works</h2>
+            <div class="space-y-4 text-sm">
+                <p>This tool processes the Gate Keeper Distributor Brands Import file and maps it against static brand mapping data to produce the final distributor brands import file. No data leaves your machine — everything runs locally in the browser.</p>
+
+                <!-- Technical Overview -->
+                <div class="bg-black/20 p-4 rounded-lg">
+                    <p class="font-semibold text-white mb-2">Technical Overview</p>
+                    <p class="text-xs">This tool performs a many-to-many mapping transformation where one Gate Keeper brand can expand into multiple Salesforce brands. The processing is idempotent and deterministic - the same input will always produce the same output.</p>
+                </div>
+
+                <!-- Data Flow Process -->
+                <p class="font-medium text-white mt-6">Data Flow Process</p>
+                <ol class="list-decimal list-inside space-y-2 pl-2">
+                    <li>
+                        <strong class="font-medium text-white">Input Validation:</strong> Verify CSV contains required columns (MasterDistID, ProductBrand). Trim whitespace from headers and values.
+                    </li>
+                    <li>
+                        <strong class="font-medium text-white">Row Processing:</strong> Iterate through each Gate Keeper row, validating that both MasterDistID and ProductBrand are non-empty strings.
+                    </li>
+                    <li>
+                        <strong class="font-medium text-white">Brand Lookup:</strong> For each ProductBrand, perform exact-match lookup in BRAND_MAPPING dictionary (case-sensitive).
+                    </li>
+                    <li>
+                        <strong class="font-medium text-white">Output Generation:</strong> For each successful mapping, create N output rows (where N = number of mapped brands). Each row contains: Distributor__c, Brand Name, Brand__c.
+                    </li>
+                    <li>
+                        <strong class="font-medium text-white">Error Tracking:</strong> Collect unmapped brands, missing data, and malformed rows for detailed reporting.
+                    </li>
+                </ol>
+
+                <!-- Input Data Format -->
+                <p class="font-medium text-white mt-6">Input Data Format (Gate Keeper CSV)</p>
+                <div class="bg-black/20 p-3 rounded text-xs mt-2">
+                    <p class="font-medium mb-1">Required Columns:</p>
+                    <ul class="list-disc list-inside pl-2 space-y-1">
+                        <li><code class="bg-black/30 px-1 rounded">MasterDistID</code> (string, required) - Unique identifier for the distributor</li>
+                        <li><code class="bg-black/30 px-1 rounded">ProductBrand</code> (string, required) - Brand name as it appears in Gate Keeper</li>
+                    </ul>
+                    <p class="font-medium mt-3 mb-1">Example Input:</p>
+                    <pre class="bg-black/40 p-2 rounded mt-1 overflow-x-auto">MasterDistID,ProductBrand
+12345,"Mike's"
+67890,"White Claw"
+12345,"Cayman Jack"</pre>
+                </div>
+
+                <!-- Output Data Format -->
+                <p class="font-medium text-white mt-6">Output Data Format (Salesforce Import CSV)</p>
+                <div class="bg-black/20 p-3 rounded text-xs mt-2">
+                    <p class="font-medium mb-1">Output Columns:</p>
+                    <ul class="list-disc list-inside pl-2 space-y-1">
+                        <li><code class="bg-black/30 px-1 rounded">Distributor__c</code> (string) - Format: <code class="bg-black/40 px-1">MASTERDIST:{MasterDistID}</code></li>
+                        <li><code class="bg-black/30 px-1 rounded">Brand Name</code> (string) - Human-readable brand name from mapping</li>
+                        <li><code class="bg-black/30 px-1 rounded">Brand__c</code> (string) - Salesforce 18-character ID starting with "01t"</li>
+                    </ul>
+                    <p class="font-medium mt-3 mb-1">Example Output (Mike's → 2 rows):</p>
+                    <pre class="bg-black/40 p-2 rounded mt-1 overflow-x-auto">Distributor__c,Brand Name,Brand__c
+MASTERDIST:12345,Mike's Hard,01tau000003PcTQAA0
+MASTERDIST:12345,Mike's Harder,01tau000003PcTRAA0
+MASTERDIST:67890,White Claw,01tau000003PcbSAAS
+MASTERDIST:12345,Cayman Jack,01tau000003PcTSAA0</pre>
+                </div>
+
+                <!-- Complete Brand Mapping Table -->
+                <p class="font-medium text-white mt-6">Complete Brand Mapping Table</p>
+                <div class="bg-black/20 p-3 rounded text-xs mt-2 overflow-x-auto">
+                    <p class="mb-2">This is the complete static mapping used by the tool. Each Gate Keeper brand maps to one or more Salesforce brands:</p>
+                    <table class="w-full text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/20">
+                                <th class="text-left py-2 pr-4 font-semibold text-white">Gate Keeper Brand</th>
+                                <th class="text-left py-2 pr-4 font-semibold text-white">→ Salesforce Brand(s)</th>
+                                <th class="text-left py-2 font-semibold text-white">Salesforce ID(s)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-white/10">
+                            <tr><td class="py-2 pr-4">Mike's</td><td class="py-2 pr-4">Mike's Hard<br>Mike's Harder</td><td class="py-2 font-mono text-xs">01tau000003PcTQAA0<br>01tau000003PcTRAA0</td></tr>
+                            <tr><td class="py-2 pr-4">White Claw</td><td class="py-2 pr-4">White Claw</td><td class="py-2 font-mono text-xs">01tau000003PcbSAAS</td></tr>
+                            <tr><td class="py-2 pr-4">MXD Drinks</td><td class="py-2 pr-4">MXD Drinks</td><td class="py-2 font-mono text-xs">01tau000003PcbTAAS</td></tr>
+                            <tr><td class="py-2 pr-4">Cayman Jack</td><td class="py-2 pr-4">Cayman Jack</td><td class="py-2 font-mono text-xs">01tau000003PcTSAA0</td></tr>
+                            <tr><td class="py-2 pr-4">2 Hoots</td><td class="py-2 pr-4">2 Hoots</td><td class="py-2 font-mono text-xs">01tau000003PcbYAAS</td></tr>
+                            <tr><td class="py-2 pr-4">Más+ by Messi</td><td class="py-2 pr-4">Más+ by Messi</td><td class="py-2 font-mono text-xs">01tau000003PcbVAAS</td></tr>
+                            <tr><td class="py-2 pr-4">Dillon's</td><td class="py-2 pr-4">Dillon's</td><td class="py-2 font-mono text-xs">01tau000003PcbZAAS</td></tr>
+                            <tr><td class="py-2 pr-4">Lazy Pour</td><td class="py-2 pr-4">Lazy Pour</td><td class="py-2 font-mono text-xs">01tau000003PcbWAAS</td></tr>
+                            <tr><td class="py-2 pr-4">Glendalough</td><td class="py-2 pr-4">Glendalough</td><td class="py-2 font-mono text-xs">01tau000003PcTeAAK</td></tr>
+                            <tr><td class="py-2 pr-4">Bearface</td><td class="py-2 pr-4">Bearface</td><td class="py-2 font-mono text-xs">01tau000003PcTfAAK</td></tr>
+                            <tr><td class="py-2 pr-4">Olé Cocktail Co.</td><td class="py-2 pr-4">Olé Cocktail Co.</td><td class="py-2 font-mono text-xs">01tau000003PcbaAAC</td></tr>
+                            <tr><td class="py-2 pr-4">White Claw Spirits</td><td class="py-2 pr-4">White Claw Spirits</td><td class="py-2 font-mono text-xs">01tau000003PcbXAAS</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Processing Rules and Edge Cases -->
+                <p class="font-medium text-white mt-6">Processing Rules & Edge Cases</p>
+                <ul class="list-disc list-inside pl-2 space-y-1 text-xs">
+                    <li><strong>Whitespace Handling:</strong> Leading/trailing whitespace is trimmed from MasterDistID and ProductBrand before processing</li>
+                    <li><strong>Case Sensitivity:</strong> Brand matching is case-sensitive. "Mike's" ≠ "MIKE'S" ≠ "mike's"</li>
+                    <li><strong>Special Characters:</strong> Brands may contain special characters (e.g., apostrophes, plus signs). These must match exactly.</li>
+                    <li><strong>Empty/Null Values:</strong> Rows with empty MasterDistID or ProductBrand are skipped and reported in errors</li>
+                    <li><strong>Unmapped Brands:</strong> Brands not found in BRAND_MAPPING are skipped and collected for warning report</li>
+                    <li><strong>Duplicate Input Rows:</strong> Each input row is processed independently. Duplicates in input will create duplicate output rows.</li>
+                    <li><strong>UTF-8 Encoding:</strong> Output CSV includes UTF-8 BOM (\\uFEFF) for proper character encoding in Excel</li>
+                    <li><strong>One-to-Many Expansion:</strong> A single input row with "Mike's" generates 2 output rows (one for each mapped brand)</li>
+                </ul>
+
+                <!-- Error Handling -->
+                <p class="font-medium text-white mt-6">Error Handling & Validation</p>
+                <div class="bg-black/20 p-3 rounded text-xs mt-2">
+                    <p class="font-medium mb-2">The tool tracks three categories of issues:</p>
+                    <ol class="list-decimal list-inside pl-2 space-y-2">
+                        <li>
+                            <strong>Unmapped Brands:</strong> ProductBrand values that don't exist in BRAND_MAPPING
+                            <ul class="list-disc list-inside pl-4 mt-1 text-slate-300">
+                                <li>Collected in a Set (deduplicated)</li>
+                                <li>Reported in warning message with full list</li>
+                                <li>Rows with unmapped brands are skipped</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong>Missing Data:</strong> Rows where MasterDistID or ProductBrand is empty/null
+                            <ul class="list-disc list-inside pl-4 mt-1 text-slate-300">
+                                <li>Includes row number and field values for debugging</li>
+                                <li>These rows are skipped from output</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong>Malformed Rows:</strong> Rows that cause parsing or processing errors
+                            <ul class="list-disc list-inside pl-4 mt-1 text-slate-300">
+                                <li>Includes row number, error reason, and raw data</li>
+                                <li>Caught by try-catch during processing loop</li>
+                            </ul>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- End of content wrapper -->
+
+    <script type="text/javascript">
+    window.addEventListener('load', () => {
+        // Make content visible after everything is loaded
+        document.body.classList.replace('content-hidden', 'content-visible');
+
+        // Static brand mapping data
+        const BRAND_MAPPING = {
+            "Mike's": [
+                { name: "Mike's Hard", brandId: "01tau000003PcTQAA0" },
+                { name: "Mike's Harder", brandId: "01tau000003PcTRAA0" }
+            ],
+            "White Claw": [
+                { name: "White Claw", brandId: "01tau000003PcbSAAS" }
+            ],
+            "MXD Drinks": [
+                { name: "MXD Drinks", brandId: "01tau000003PcbTAAS" }
+            ],
+            "Cayman Jack": [
+                { name: "Cayman Jack", brandId: "01tau000003PcTSAA0" }
+            ],
+            "2 Hoots": [
+                { name: "2 Hoots", brandId: "01tau000003PcbYAAS" }
+            ],
+            "Más+ by Messi": [
+                { name: "Más+ by Messi", brandId: "01tau000003PcbVAAS" }
+            ],
+            "Dillon's": [
+                { name: "Dillon's", brandId: "01tau000003PcbZAAS" }
+            ],
+            "Lazy Pour": [
+                { name: "Lazy Pour", brandId: "01tau000003PcbWAAS" }
+            ],
+            "Glendalough": [
+                { name: "Glendalough", brandId: "01tau000003PcTeAAK" }
+            ],
+            "Bearface": [
+                { name: "Bearface", brandId: "01tau000003PcTfAAK" }
+            ],
+            "Olé Cocktail Co.": [
+                { name: "Olé Cocktail Co.", brandId: "01tau000003PcbaAAC" }
+            ],
+            "White Claw Spirits": [
+                { name: "White Claw Spirits", brandId: "01tau000003PcbXAAS" }
+            ]
+        };
+
+        // --- Polling function to wait for PapaParse ---
+        
+        /**
+         * Checks if PapaParse is loaded, then initializes the app.
+         * Retries for 5 seconds before showing an error.
+         * @param {number} [retries=0] - The current retry count.
+         */
+        function checkPapaParse(retries = 0) {
+            // Check if the global Papa object is available
+            if (typeof Papa !== 'undefined') {
+                // PapaParse is loaded, initialize the application
+                initializeApp();
+            } else if (retries < 50) { // 50 * 100ms = 5 seconds
+                // Not loaded yet, try again in 100ms
+                setTimeout(() => checkPapaParse(retries + 1), 100);
+            } else {
+                // Failed to load after 5 seconds
+                const statusMessageEl = document.getElementById('status-message');
+                if (statusMessageEl) {
+                    statusMessageEl.textContent = 'Failed to load parsing library. Please check your internet connection and refresh the page.';
+                    statusMessageEl.classList.remove('hidden', 'bg-green-500/30', 'text-green-100');
+                    statusMessageEl.classList.add('bg-red-500/30', 'text-red-100');
+                } else {
+                    console.error('Failed to load parsing library and status element not found.');
+                }
+            }
+        }
+
+        /**
+         * Contains the main application logic.
+         * This function is only called *after* PapaParse is confirmed to be loaded.
+         */
+        function initializeApp() {
+            // --- STATE VARIABLES ---
+            let gatekeeperBrandsData = null;
+            let filesParsing = 0; // Counter to track files currently being parsed
+
+            // --- COMMON ELEMENTS ---
+            const generateButton = document.getElementById('generate-csv');
+            const generateButtonText = document.getElementById('generate-button-text');
+            const generateButtonIcon = document.getElementById('generate-button-icon');
+            generateButton.defaultIconHTML = generateButtonIcon.innerHTML; // Store default icon
+
+            const statusMessageEl = document.getElementById('status-message');
+            const clearAllButton = document.getElementById('clear-all');
+
+            // --- UI HELPER FUNCTIONS ---
+
+            /**
+             * Shows a status or error message.
+             * @param {string} message - The message to display.
+             * @param {('success' | 'warning' | 'error')} type - The type of message.
+             */
+            function showMessage(message, type = 'error') {
+                // Convert newlines to <br> tags for HTML display
+                const htmlMessage = message.replace(/\n/g, '<br>');
+                statusMessageEl.innerHTML = htmlMessage;
+                
+                statusMessageEl.classList.remove(
+                    'hidden',
+                    'bg-green-500/30', 'text-green-100',
+                    'bg-yellow-500/30', 'text-yellow-100',
+                    'bg-red-500/30', 'text-red-100'
+                );
+                
+                switch (type) {
+                    case 'success':
+                        statusMessageEl.classList.add('bg-green-500/30', 'text-green-100');
+                        break;
+                    case 'warning':
+                        statusMessageEl.classList.add('bg-yellow-500/30', 'text-yellow-100');
+                        break;
+                    default: // error
+                        statusMessageEl.classList.add('bg-red-500/30', 'text-red-100');
+                }
+            }
+
+            /**
+             * Hides the status message box.
+             */
+            function hideMessage() {
+                statusMessageEl.classList.add('hidden');
+            }
+
+            /**
+             * Sets the loading state for the generate button.
+             * @param {boolean} isLoading - Whether to show loading state.
+             * @param {string} [text='Generate and Download CSV'] - Text to show.
+             */
+            const setLoadingState = (isLoading, text = 'Generate and Download CSV') => {
+                const isParsing = filesParsing > 0;
+                generateButton.disabled = isLoading || isParsing;
+                
+                if (isLoading) {
+                    generateButtonText.textContent = text;
+                    generateButtonIcon.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+                } else if (isParsing) {
+                    generateButtonText.textContent = 'Parsing file...';
+                    generateButtonIcon.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+                } else {
+                    generateButtonText.textContent = text;
+                    generateButtonIcon.innerHTML = generateButton.defaultIconHTML;
+                }
+            };
+
+            /**
+             * Updates the file count/status text for a dropzone.
+             * @param {HTMLElement} fileCountEl - The text element to show file count.
+             * @param {File | null} file - The file, or null to clear.
+             * @param {('parsing' | 'success' | 'error' | 'clear')} status - The new status.
+             */
+            const updateFileStatus = (fileCountEl, file, status = 'clear') => {
+                const nameEl = fileCountEl.querySelector('.file-name');
+                const statusEl = fileCountEl.querySelector('.file-status');
+
+                if (!nameEl || !statusEl) return;
+
+                // Clear previous status colors
+                statusEl.classList.remove('file-status-success', 'file-status-error', 'file-status-parsing');
+                nameEl.classList.remove('font-medium', 'text-green-300');
+
+                switch (status) {
+                    case 'parsing':
+                        nameEl.textContent = file ? file.name : 'Parsing...';
+                        statusEl.textContent = '(Parsing...)';
+                        statusEl.classList.add('file-status-parsing');
+                        break;
+                    case 'success':
+                        nameEl.textContent = file.name;
+                        nameEl.classList.add('font-medium', 'text-green-300');
+                        statusEl.textContent = '✓ (Ready)';
+                        statusEl.classList.add('file-status-success');
+                        break;
+                    case 'error':
+                        nameEl.textContent = file ? file.name : 'Error';
+                        statusEl.textContent = '✗ (Error)';
+                        statusEl.classList.add('file-status-error');
+                        break;
+                    case 'clear':
+                    default:
+                        nameEl.textContent = 'No file selected';
+                        statusEl.textContent = '';
+                        break;
+                }
+            };
+
+            // --- CORE LOGIC ---
+
+            /**
+             * Sets up a dropzone for file uploads.
+             * @param {HTMLElement} dropzoneEl - The dropzone container.
+             * @param {HTMLInputElement} inputEl - The file input element.
+             * @param {HTMLElement} fileCountEl - The text element to show file count.
+             * @param {function(File):void} onFileSelected - Callback when a file is selected.
+             */
+            const setupDropzone = (dropzoneEl, inputEl, fileCountEl, onFileSelected) => {
+                if (!dropzoneEl) {
+                    console.error("Failed to find dropzone element for:", inputEl.id);
+                    return; 
+                }
+
+                dropzoneEl.addEventListener('click', () => inputEl.click());
+                dropzoneEl.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzoneEl.classList.add('dropzone-active');
+                });
+                dropzoneEl.addEventListener('dragleave', () => dropzoneEl.classList.remove('dropzone-active'));
+                dropzoneEl.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropzoneEl.classList.remove('dropzone-active');
+                    if (e.dataTransfer.files.length > 0) {
+                        inputEl.files = e.dataTransfer.files;
+                        const file = inputEl.files[0];
+                        onFileSelected(file);
+                    }
+                });
+                inputEl.addEventListener('change', () => {
+                    const file = inputEl.files[0];
+                    if (file) {
+                        onFileSelected(file);
+                    }
+                });
+            };
+
+            /**
+             * Parses a CSV file using PapaParse.
+             * @param {File} file - The CSV file to parse.
+             * @param {HTMLElement} fileCountEl - The status element to update.
+             * @returns {Promise<Array<Object>>} A promise that resolves with the parsed data (array of objects).
+             */
+            const parseCSV = (file, fileCountEl) => {
+                filesParsing++;
+                setLoadingState(false, 'Generate and Download CSV'); // Update button to "Parsing..." state
+                updateFileStatus(fileCountEl, file, 'parsing');
+
+                return new Promise((resolve, reject) => {
+                    if (!file) {
+                        filesParsing--;
+                        setLoadingState(false, 'Generate and Download CSV');
+                        updateFileStatus(fileCountEl, null, 'error');
+                        reject(new Error("No file provided."));
+                        return;
+                    }
+
+                    if (typeof Papa === 'undefined') {
+                        filesParsing--;
+                        setLoadingState(false, 'Generate and Download CSV');
+                        updateFileStatus(fileCountEl, file, 'error');
+                        reject(new Error("Parsing library (PapaParse) is not loaded. Please refresh."));
+                        return;
+                    }
+                    
+                    Papa.parse(file, {
+                        header: true,
+                        skipEmptyLines: true,
+                        transformHeader: (header) => header.trim(), // Automatically trim spaces from headers
+                        complete: (results) => {
+                            filesParsing--;
+                            setLoadingState(false, 'Generate and Download CSV'); // Update button state (will re-enable if 0)
+                            if (results.errors.length > 0) {
+                                updateFileStatus(fileCountEl, file, 'error');
+                                reject(new Error(`Error parsing ${file.name}: ${results.errors[0].message}`));
+                            } else {
+                                updateFileStatus(fileCountEl, file, 'success');
+                                resolve(results.data);
+                            }
+                        },
+                        error: (err) => {
+                            filesParsing--;
+                            setLoadingState(false, 'Generate and Download CSV'); // Update button state
+                            updateFileStatus(fileCountEl, file, 'error');
+                            reject(new Error(`Failed to parse ${file.name}: ${err.message}`));
+                        }
+                    });
+                });
+            };
+
+            // --- Setup Dropzone ---
+            const gkBrandsFileCountEl = document.getElementById('gatekeeper-brands-file-count');
+
+            setupDropzone(
+                document.getElementById('gatekeeper-brands-dropzone'),
+                document.getElementById('gatekeeper-brands-upload'),
+                gkBrandsFileCountEl,
+                (file) => {
+                    gatekeeperBrandsData = null; // Clear old data on new upload
+                    parseCSV(file, gkBrandsFileCountEl).then(data => {
+                        gatekeeperBrandsData = data;
+                        hideMessage();
+                    }).catch(err => showMessage(err.message))
+                }
+            );
+
+            // --- Main Generate Logic ---
+            generateButton.addEventListener('click', () => {
+                hideMessage();
+
+                // 1. Validate inputs
+                if (!gatekeeperBrandsData) {
+                    showMessage('Please upload the Gate Keeper Distributor Brands CSV.');
+                    return;
+                }
+
+                setLoadingState(true, 'Processing data...');
+
+                // Use a timeout to allow the UI to update to the loading state
+                setTimeout(() => {
+                    try {
+                        // 2. Validate required columns
+                        if (!gatekeeperBrandsData || gatekeeperBrandsData.length === 0) {
+                            throw new Error('Gate Keeper Distributor Brands CSV appears to be empty');
+                        }
+
+                        const headers = Object.keys(gatekeeperBrandsData[0]);
+                        const requiredColumns = ['MasterDistID', 'ProductBrand'];
+                        const missing = requiredColumns.filter(col => !headers.includes(col));
+                        
+                        if (missing.length > 0) {
+                            throw new Error(`Gate Keeper Distributor Brands CSV is missing required columns: ${missing.join(', ')}`);
+                        }
+
+                        // 3. Process the data and build the output
+                        const outputRows = [
+                            ['Distributor__c', 'Brand Name', 'Brand__c'] // Header row
+                        ];
+
+                        // Tracking structures for detailed error reporting
+                        const errors = {
+                            unmappedBrands: new Set(),
+                            malformedRows: [],
+                            missingData: []
+                        };
+
+                        let rowsProcessed = 0;
+                        let rowsGenerated = 0;
+                        let rowsSkipped = 0;
+
+                        // Process each row in the Gate Keeper data
+                        for (const row of gatekeeperBrandsData) {
+                            rowsProcessed++;
+                            
+                            try {
+                                const masterDistId = row.MasterDistID;
+                                const productBrand = row.ProductBrand;
+
+                                // Validate required fields
+                                if (!masterDistId || !productBrand) {
+                                    errors.missingData.push({
+                                        rowNumber: rowsProcessed,
+                                        masterDistId: masterDistId || 'missing',
+                                        productBrand: productBrand || 'missing'
+                                    });
+                                    rowsSkipped++;
+                                    continue;
+                                }
+
+                                const trimmedBrand = productBrand.trim();
+                                const trimmedDistId = masterDistId.trim();
+
+                                // Look up the brand in our mapping
+                                const brandMappings = BRAND_MAPPING[trimmedBrand];
+                                
+                                if (brandMappings) {
+                                    // Create a row for each mapped brand
+                                    for (const mapping of brandMappings) {
+                                        outputRows.push([
+                                            `MASTERDIST:${trimmedDistId}`,
+                                            mapping.name,
+                                            mapping.brandId
+                                        ]);
+                                        rowsGenerated++;
+                                    }
+                                } else {
+                                    // Track unmapped brands
+                                    errors.unmappedBrands.add(trimmedBrand);
+                                    rowsSkipped++;
+                                }
+
+                            } catch (error) {
+                                console.error(`Error processing row ${rowsProcessed}:`, error);
+                                errors.malformedRows.push({
+                                    rowNumber: rowsProcessed,
+                                    reason: error.message,
+                                    data: JSON.stringify(row)
+                                });
+                                rowsSkipped++;
+                            }
+                        }
+
+                        // 4. Generate error report
+                        let errorReport = [];
+                        let errorSummary = [];
+
+                        if (errors.unmappedBrands.size > 0) {
+                            errorSummary.push(`Unmapped brands: ${errors.unmappedBrands.size}`);
+                            errorReport.push(
+                                '⚠️ Brands Not Found in Mapping:',
+                                ...Array.from(errors.unmappedBrands).map(brand => `  • "${brand}"`)
+                            );
+                        }
+
+                        if (errors.missingData.length > 0) {
+                            errorSummary.push(`Rows with missing data: ${errors.missingData.length}`);
+                            errorReport.push(
+                                '❌ Rows With Missing Data:',
+                                ...errors.missingData.map(({rowNumber, masterDistId, productBrand}) => 
+                                    `  • Row ${rowNumber}: MasterDistID="${masterDistId}", ProductBrand="${productBrand}"`)
+                            );
+                        }
+
+                        if (errors.malformedRows.length > 0) {
+                            errorSummary.push(`Malformed rows: ${errors.malformedRows.length}`);
+                            errorReport.push(
+                                '❌ Malformed Data Rows:',
+                                ...errors.malformedRows.map(({rowNumber, reason, data}) => 
+                                    `  • Row ${rowNumber}: ${reason}\n    Data: ${data}`)
+                            );
+                        }
+
+                        // 5. Convert to CSV and trigger download
+                        if (outputRows.length <= 1) {
+                            // Handle no data found
+                            const errorDetails = errorSummary.length > 0 
+                                ? `\n\nErrors encountered:\n${errorSummary.join('\n')}`
+                                : '';
+                            
+                            console.error(
+                                `No matching data. Processed ${rowsProcessed} rows, skipped ${rowsSkipped}.` +
+                                `\n\nDetailed Error Report:\n${errorReport.join('\n')}`
+                            );
+                            
+                            showMessage(
+                                `No valid data generated. Processed ${rowsProcessed} rows, ` +
+                                `${rowsSkipped} skipped.${errorDetails}`
+                            );
+                            setLoadingState(false, 'Generate and Download CSV');
+                            return;
+                        }
+
+                        // Update loading state before unparse
+                        setLoadingState(true, 'Preparing download...');
+                        
+                        // Small timeout to let UI update before potentially blocking CSV conversion
+                        setTimeout(() => {
+                            const csvContent = Papa.unparse(outputRows);
+                            
+                            // Add UTF-8 BOM to ensure proper character encoding
+                            const BOM = '\uFEFF';
+                            const csvWithBOM = BOM + csvContent;
+                            
+                            const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+                            const link = document.createElement('a');
+                            const url = URL.createObjectURL(blob);
+                            
+                            link.setAttribute('href', url);
+                            link.setAttribute('download', 'Distributor Brands Import.csv');
+                            link.style.visibility = 'hidden';
+                            
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+
+                            // Show success message with any warnings
+                            const hasWarnings = errorSummary.length > 0;
+                            const successMessage = 
+                                `Success! Generated ${rowsGenerated} import rows from ${rowsProcessed} source rows.` +
+                                `${rowsSkipped > 0 ? `\n${rowsSkipped} rows were skipped.` : ''}` +
+                                `${hasWarnings ? `\n\nWarnings:\n${errorSummary.join('\n')}` : ''}`;
+                            
+                            // Log detailed report to console
+                            if (hasWarnings) {
+                                console.warn(
+                                    'Import completed with warnings:\n' +
+                                    errorReport.join('\n')
+                                );
+                            }
+                            
+                            showMessage(successMessage, hasWarnings ? 'warning' : 'success');
+                            setLoadingState(false, 'Generate and Download CSV');
+                        }, 50); // 50ms timeout for UI to update
+
+                    } catch (error) {
+                        console.error('Error during CSV generation:', error);
+                        showMessage(`An error occurred: ${error.message}`);
+                        setLoadingState(false, 'Generate and Download CSV');
+                    }
+                }, 50); // 50ms timeout
+            });
+
+            // --- Clear All Logic ---
+            clearAllButton.addEventListener('click', () => {
+                // Clear data variables
+                gatekeeperBrandsData = null;
+
+                // Clear file input values
+                document.getElementById('gatekeeper-brands-upload').value = null;
+
+                // Reset dropzone text
+                updateFileStatus(gkBrandsFileCountEl, null, 'clear');
+
+                // Hide status message
+                hideMessage();
+
+                // Reset generate button
+                setLoadingState(false, 'Generate and Download CSV');
+
+                console.log('All inputs cleared.');
+            });
+        
+        } // End of initializeApp()
+
+        // --- Start the application ---
+        // This will wait until PapaParse is safely loaded.
+        checkPapaParse();
+
+    }); // Close window.load
+    </script>
+</body>
+</html>
